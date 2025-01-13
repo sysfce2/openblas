@@ -120,6 +120,11 @@ extern gotoblas_t  gotoblas_CORTEXA55;
 #else
 #define gotoblas_CORTEXA55 gotoblas_ARMV8
 #endif
+#ifdef DYN_A64FX
+extern gotoblas_t gotoblas_A64FX;
+#else
+#define gotoblas_A64FX gotoblas_ARMV8
+#endif
 #else
 extern gotoblas_t  gotoblas_CORTEXA53;
 #define gotoblas_CORTEXA55 gotoblas_CORTEXA53
@@ -136,10 +141,12 @@ extern gotoblas_t  gotoblas_NEOVERSEN1;
 extern gotoblas_t  gotoblas_NEOVERSEV1;
 extern gotoblas_t  gotoblas_NEOVERSEN2;
 extern gotoblas_t  gotoblas_ARMV8SVE;
+extern gotoblas_t  gotoblas_A64FX;
 #else
 #define gotoblas_NEOVERSEV1 gotoblas_ARMV8
 #define gotoblas_NEOVERSEN2 gotoblas_ARMV8
 #define gotoblas_ARMV8SVE   gotoblas_ARMV8
+#define gotoblas_A64FX      gotoblas_ARMV8
 #endif
 extern gotoblas_t  gotoblas_THUNDERX3T110;
 #endif
@@ -149,7 +156,7 @@ extern void openblas_warning(int verbose, const char * msg);
 #define FALLBACK_VERBOSE 1
 #define NEOVERSEN1_FALLBACK "OpenBLAS : Your OS does not support SVE instructions. OpenBLAS is using Neoverse N1 kernels as a fallback, which may give poorer performance.\n"
 
-#define NUM_CORETYPES   17
+#define NUM_CORETYPES   18
 
 /*
  * In case asm/hwcap.h is outdated on the build system, make sure
@@ -184,6 +191,7 @@ static char *corename[] = {
   "thunderx3t110",
   "cortexa55",
   "armv8sve",
+  "a64fx",
   "unknown"
 };
 
@@ -205,6 +213,7 @@ char *gotoblas_corename(void) {
   if (gotoblas == &gotoblas_THUNDERX3T110) return corename[14];
   if (gotoblas == &gotoblas_CORTEXA55)    return corename[15];
   if (gotoblas == &gotoblas_ARMV8SVE)     return corename[16];
+  if (gotoblas == &gotoblas_A64FX)        return corename[17];
   return corename[NUM_CORETYPES];
 }
 
@@ -241,6 +250,7 @@ static gotoblas_t *force_coretype(char *coretype) {
     case 14: return (&gotoblas_THUNDERX3T110);
     case 15: return (&gotoblas_CORTEXA55);
     case 16: return (&gotoblas_ARMV8SVE);
+    case 17: return (&gotoblas_A64FX);
   }
   snprintf(message, 128, "Core not found: %s\n", coretype);
   openblas_warning(1, message);
@@ -261,22 +271,59 @@ static gotoblas_t *get_coretype(void) {
 
   if (!(getauxval(AT_HWCAP) & HWCAP_CPUID)) {
 #ifdef __linux
+	int i;
+        int ncores=0;
+	int prt,cpucap,cpulowperf=0,cpumidperf=0,cpuhiperf=0;
         FILE *infile;
-        char buffer[512], *p, *cpu_part = NULL, *cpu_implementer = NULL;
-        p = (char *) NULL ;
-	infile = fopen("/sys/devices/system/cpu/cpu0/regs/identification/midr_el1","r");
-	if (!infile) return NULL;
-	(void)fgets(buffer, sizeof(buffer), infile);
-	midr_el1=strtoul(buffer,NULL,16);
-	fclose(infile);
-#else
+        char buffer[512], *cpu_part = NULL, *cpu_implementer = NULL;
+
+	infile = fopen("/sys/devices/system/cpu/possible","r");
+	if (infile) {
+		(void)fgets(buffer, sizeof(buffer), infile);
+		sscanf(buffer,"0-%d",&ncores);
+		fclose (infile);
+		ncores++;
+	} else {
+		infile = fopen("/proc/cpuinfo","r");
+                while (fgets(buffer, sizeof(buffer), infile)) {
+                        if (!strncmp("processor", buffer, 9))
+                        ncores++;
+		}
+	}
+	for (i=0;i<ncores;i++) {
+		sprintf(buffer,"/sys/devices/system/cpu/cpu%d/regs/identification/midr_el1",i);
+		infile = fopen(buffer,"r");
+		if (!infile) return NULL;
+		(void)fgets(buffer, sizeof(buffer), infile);
+		midr_el1=strtoul(buffer,NULL,16);
+  		implementer = (midr_el1 >> 24) & 0xFF;
+  		prt        = (midr_el1 >> 4)  & 0xFFF;
+		fclose(infile);
+		sprintf(buffer,"/sys/devices/system/cpu/cpu%d/cpu_capability",i);
+		infile = fopen(buffer,"r");
+		if (infile) {
+			(void)fgets(buffer, sizeof(buffer), infile);
+			cpucap=strtoul(buffer,NULL,16);
+			fclose(infile);
+			if (cpucap >= 1000) cpuhiperf++;
+			else if (cpucap >=500) cpumidperf++;
+			else cpulowperf++;
+			if (cpucap >=1000) part = prt;
+		} else if (implementer == 0x41 ){
+			if (prt >= 0xd4b) cpuhiperf++;
+			else if (prt>= 0xd07) cpumidperf++;
+			else cpulowperf++;
+		} else cpulowperf++;
+	}
+	if (!part) part = prt;
+#else	
     snprintf(coremsg, 128, "Kernel lacks cpuid feature support. Auto detection of core type failed !!!\n");
     openblas_warning(1, coremsg);
     return NULL;
 #endif
   } else {
     get_cpu_ftr(MIDR_EL1, midr_el1);
-  }
+  
   /*
    * MIDR_EL1
    *
@@ -287,7 +334,7 @@ static gotoblas_t *get_coretype(void) {
    */
   implementer = (midr_el1 >> 24) & 0xFF;
   part        = (midr_el1 >> 4)  & 0xFFF;
-
+  }
   switch(implementer)
   {
     case 0x41: // ARM
@@ -344,6 +391,15 @@ static gotoblas_t *get_coretype(void) {
           return &gotoblas_THUNDERX2T99;
         case 0x0b8: // ThunderX3
           return &gotoblas_THUNDERX3T110;
+      }
+      break;
+    case 0x46: // Fujitsu
+      switch (part)
+      {
+#ifndef NO_SVE
+        case 0x001: // A64FX
+          return &gotoblas_A64FX;
+#endif
       }
       break;
     case 0x48: // HiSilicon

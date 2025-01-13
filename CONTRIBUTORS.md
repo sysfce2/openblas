@@ -198,6 +198,9 @@ In chronological order:
 * PingTouGe Semiconductor Co., Ltd.
   * [2020-10] Add RISC-V Vector (0.7.1) support. Optimize BLAS kernels for Xuantie C910
 
+* Jake Arkinstall <https://github.com/jake-arkinstall>
+  * [2021-02-10] Remove in-source configure_file to enable builds in read-only contexts (issue #3100, PR #3101)
+
 * River Dillon <oss@outerpassage.net>
   * [2021-07-10] fix compilation with musl libc
 
@@ -223,3 +226,9 @@ In chronological order:
 
 * Dirreke <https://github.com/mseminatore>
   * [2024-01-16] Add basic support for the CSKY architecture
+
+* Christopher Daley <https://github.com/cdaley>
+  * [2024-01-24] Optimize GEMV forwarding on ARM64 systems
+
+* Aniket P. Garade <https://github.com/garadeaniket>   Sushil Pratap Singh <https://github.com/SushilPratap04>  Juliya James <https://github.com/Juliya32> 
+  *  [2024-12-13] Optimized swap and rot  Level-1 BLAS routines with ARM SVE  

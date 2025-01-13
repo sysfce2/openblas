@@ -319,8 +319,8 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 		lda = LDB;
 		ldb = LDA;
 
-		if (Uplo == CblasUpper) uplo = 0;
-		if (Uplo == CblasLower) uplo = 1;
+		if (Uplo == CblasUpper) uplo = 1;
+		if (Uplo == CblasLower) uplo = 0;
 
 		if (TransB == CblasNoTrans)
 			transa = 0;
@@ -522,7 +522,7 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 
 			IDEBUG_START;
 
-			buffer_size = j + k + 128 / sizeof(FLOAT);
+			buffer_size = 2 * (j + k) + 128 / sizeof(FLOAT);
 #ifdef WINDOWS_ABI
 			buffer_size += 160 / sizeof(FLOAT);
 #endif
@@ -611,7 +611,7 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 #endif
 			IDEBUG_START;
 
-			buffer_size = j + k + 128 / sizeof(FLOAT);
+			buffer_size = 2 * (j + k) + 128 / sizeof(FLOAT);
 #ifdef WINDOWS_ABI
 			buffer_size += 160 / sizeof(FLOAT);
 #endif
