@@ -37,6 +37,7 @@
 /*********************************************************************/
 
 #include <ctype.h>
+#include "exports.h"
 
 OPENBLAS_EXPORT
 int NAME(const char *A, const char *B){
