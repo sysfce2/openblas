@@ -266,6 +266,14 @@ static inline int get_cpu_model(char *model_name) {
 
 #if defined(ASSEMBLER) && !defined(NEEDPARAM)
 
+#define PROLOGUE_EXPORT \
+    .text ;\
+    .align 5 ;\
+    .globl  REALNAME ;\
+    .type   REALNAME, @function ;\
+REALNAME: ;\
+
+#ifdef __ELF__
 #define PROLOGUE \
     .text ;\
     .align 5 ;\
@@ -273,13 +281,9 @@ static inline int get_cpu_model(char *model_name) {
 	.hidden REALNAME ;\
     .type   REALNAME, @function ;\
 REALNAME: ;\
-
-#define PROLOGUE_EXPORT \
-    .text ;\
-    .align 5 ;\
-    .globl  REALNAME ;\
-    .type   REALNAME, @function ;\
-REALNAME: ;\
+#else
+#define PROLOGUE PROLOGUE_EXPORT
+#endif
 
 #if defined(__linux__) && defined(__ELF__)
 #define GNUSTACK .section .note.GNU-stack,"",@progbits

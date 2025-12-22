@@ -400,7 +400,7 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 #endif
 
 #ifdef OS_DARWIN
-#define PROLOGUE .text;.align 5; .globl REALNAME; .hidden REALNAME; REALNAME:
+#define PROLOGUE .text;.align 5; .globl REALNAME; REALNAME:
 #define PROLOGUE_EXPORT .text;.align 5; .globl REALNAME; REALNAME:
 #define EPILOGUE	.subsections_via_symbols
 #define PROFCODE
@@ -438,6 +438,13 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
 #endif
 
 #if defined(OS_WINDOWS) && !defined(C_PGI)
+#define PROLOGUE_EXPORT \
+	.text; \
+	.align 16; \
+	.globl REALNAME ;\
+	.def REALNAME;.scl	2;.type	32;.endef; \
+REALNAME:
+#ifdef __ELF__
 #define PROLOGUE \
 	.text; \
 	.align 16; \
@@ -445,13 +452,9 @@ static __inline unsigned int blas_quickdivide(unsigned int x, unsigned int y){
     .hidden REALNAME ; \
 	.def REALNAME;.scl	2;.type	32;.endef; \
 REALNAME:
-
-#define PROLOGUE_EXPORT \
-	.text; \
-	.align 16; \
-	.globl REALNAME ;\
-	.def REALNAME;.scl	2;.type	32;.endef; \
-REALNAME:
+#else
+#define PROLOGUE PROLOGUE_EXPORT
+#endif
 
 #define PROFCODE
 
