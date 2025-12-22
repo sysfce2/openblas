@@ -535,6 +535,13 @@ static inline int blas_quickdivide(blasint x, blasint y){
 	.section .text;\
 	.align 6;\
 	.globl	REALNAME;\
+	.hidden REALNAME ;\
+	.type	REALNAME, @function;\
+REALNAME:
+#define PROLOGUE_EXPORT \
+	.section .text;\
+	.align 6;\
+	.globl	REALNAME;\
 	.type	REALNAME, @function;\
 REALNAME:
 #define EPILOGUE	.size	REALNAME, .-REALNAME
@@ -544,11 +551,33 @@ REALNAME:
 	.section .text;\
 	.align 6;\
 	.globl	REALNAME;\
+	.hidden REALNAME ;\
+	.type	REALNAME, @function;\
+REALNAME:
+#define PROLOGUE_EXPORT \
+	.section .text;\
+	.align 6;\
+	.globl	REALNAME;\
 	.type	REALNAME, @function;\
 REALNAME:
 #define EPILOGUE	.size	REALNAME, .-REALNAME
 #else
 #define PROLOGUE \
+	.section .text;\
+	.align 5;\
+	.globl REALNAME;\
+	.hidden REALNAME ;\
+	.section	".opd","aw";\
+	.align 3;\
+REALNAME:;\
+	.quad	.REALNAME, .TOC.@tocbase, 0;\
+	.previous;\
+	.size	REALNAME, 24;\
+	.type	.REALNAME, @function;\
+	.globl	.REALNAME;\
+	.hidden .REALNAME ;\
+.REALNAME:
+#define PROLOGUE_EXPORT \
 	.section .text;\
 	.align 5;\
 	.globl REALNAME;\

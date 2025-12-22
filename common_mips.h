@@ -76,6 +76,12 @@ static inline int blas_quickdivide(blasint x, blasint y){
 #define PROLOGUE \
 	.arm		 ;\
 	.global	REALNAME ;\
+	.hidden REALNAME ;\
+REALNAME:
+
+#define PROLOGUE_EXPORT \
+	.arm		 ;\
+	.global	REALNAME ;\
 REALNAME:
 
 #define EPILOGUE

@@ -210,6 +210,18 @@ static inline int blas_quickdivide(blasint x, blasint y){
 	.set	ASSEMBLER_ARCH ;\
 	.align 5 ;\
 	.globl	REALNAME ;\
+	.hidden REALNAME ;\
+	.ent	REALNAME ;\
+	.type	REALNAME, @function ;\
+REALNAME: ;\
+	.set	noreorder ;\
+	.set	nomacro
+
+#define PROLOGUE_EXPORT \
+	.text ;\
+	.set	ASSEMBLER_ARCH ;\
+	.align 5 ;\
+	.globl	REALNAME ;\
 	.ent	REALNAME ;\
 	.type	REALNAME, @function ;\
 REALNAME: ;\

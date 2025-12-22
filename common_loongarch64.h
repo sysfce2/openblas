@@ -270,6 +270,14 @@ static inline int get_cpu_model(char *model_name) {
     .text ;\
     .align 5 ;\
     .globl  REALNAME ;\
+	.hidden REALNAME ;\
+    .type   REALNAME, @function ;\
+REALNAME: ;\
+
+#define PROLOGUE_EXPORT \
+    .text ;\
+    .align 5 ;\
+    .globl  REALNAME ;\
     .type   REALNAME, @function ;\
 REALNAME: ;\
 

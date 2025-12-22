@@ -297,7 +297,8 @@ static __inline int blas_quickdivide(unsigned int x, unsigned int y){
 #endif
 
 #ifdef OS_DARWIN
-#define PROLOGUE .text;.align 5; .globl REALNAME; REALNAME:
+#define PROLOGUE .text;.align 5; .globl REALNAME; .hidden REALNAME; REALNAME:
+#define PROLOGUE_EXPORT .text;.align 5; .globl REALNAME; REALNAME:
 #define EPILOGUE	.subsections_via_symbols
 #define PROFCODE
 #endif
@@ -322,6 +323,14 @@ static __inline int blas_quickdivide(unsigned int x, unsigned int y){
 	.text; \
 	.align 16; \
 	.globl REALNAME ;\
+	.hidden REALNAME ;\
+	.def REALNAME;.scl	2;.type	32;.endef; \
+REALNAME:
+
+#define PROLOGUE_EXPORT \
+	.text; \
+	.align 16; \
+	.globl REALNAME ;\
 	.def REALNAME;.scl	2;.type	32;.endef; \
 REALNAME:
 
@@ -339,7 +348,16 @@ REALNAME:
 	.text; \
 	.align 16; \
 	.globl REALNAME ;\
-       .type REALNAME, @function; \
+	.hidden REALNAME ;\
+    .type REALNAME, @function; \
+REALNAME: \
+	_CET_ENDBR
+
+#define PROLOGUE_EXPORT \
+	.text; \
+	.align 16; \
+	.globl REALNAME ;\
+    .type REALNAME, @function; \
 REALNAME: \
 	_CET_ENDBR
 
