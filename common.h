@@ -715,7 +715,7 @@ int get_num_proc   (int);
 int get_node_equal (void);
 #endif
 
-void goto_set_num_threads(int);
+OPENBLAS_EXPORT void goto_set_num_threads(int);
 
 void gotoblas_affinity_init(void);
 void gotoblas_affinity_quit(void);
