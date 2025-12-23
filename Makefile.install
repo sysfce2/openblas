@@ -86,10 +86,10 @@ ifdef SYMBOLSUFFIX
 	@sed 's/openblas[^() ]*/&$(SYMBOLSUFFIX)/g'  cblas.tmp2 > cblas.tmp
 	#change back any openblas_complex_float and double that got hit
 	@sed 's/\(openblas_complex_\)\([^ ]*\)$(SYMBOLSUFFIX)/\1\2 /g'  cblas.tmp > cblas.tmp2
-	@sed 's/goto[^() ]*/&$(SYMBOLSUFFIX)/g'  cblas.tmp2 > cblas.tmp3
+	@sed 's/goto[^() ]*/&$(SYMBOLSUFFIX)/g'  cblas.tmp2 > cblas.tmp
 endif
-	@sed 's/OPENBLAS_EXPORT //'  cblas.tmp3 > cblas.tmp
-	@sed 's/common/openblas_config/g' cblas.tmp > "$(DESTDIR)$(OPENBLAS_INCLUDE_DIR)/cblas.h"
+	@sed 's/OPENBLAS_EXPORT //'  cblas.tmp > cblas.tmp2
+	@sed 's/common/openblas_config/g' cblas.tmp2 > "$(DESTDIR)$(OPENBLAS_INCLUDE_DIR)/cblas.h"
 endif
 
 ifneq ($(OSNAME), AIX)
