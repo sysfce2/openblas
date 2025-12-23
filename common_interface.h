@@ -46,7 +46,7 @@ extern "C" {
 
 int    BLASFUNC(xerbla)(char *, blasint *info, blasint);
 
-void extern openblas_set_num_threads_(int *);
+OPENBLAS_EXPORT void extern openblas_set_num_threads_(int *);
 
 /*Set the threading backend to a custom callback.*/
 typedef void (*openblas_dojob_callback)(int thread_num, void *jobdata, int dojob_data);
