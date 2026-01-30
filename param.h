@@ -1780,7 +1780,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GEMM_DEFAULT_OFFSET_A     0
 #define GEMM_DEFAULT_OFFSET_B     0
-#define GEMM_DEFAULT_ALIGN 0x03fffUL
+#define GEMM_DEFAULT_ALIGN (BLASLONG)0x03fffUL
 
 #define SYMV_P  8
 
@@ -1913,7 +1913,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GEMM_DEFAULT_OFFSET_A     0
 #define GEMM_DEFAULT_OFFSET_B     0
-#define GEMM_DEFAULT_ALIGN 0x03fffUL
+#define GEMM_DEFAULT_ALIGN (BLASLONG)0x03fffUL
 
 #define SYMV_P  8
 
@@ -3375,7 +3375,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(CORTEXA57) || defined(CORTEXX1) || \
     defined(CORTEXA72) || defined(CORTEXA73) || \
-    defined(FALKOR)    || defined(TSV110) || defined(EMAG8180) || defined(VORTEX) || defined(FT2000)
+    defined(FALKOR)    || defined(TSV110) || defined(EMAG8180) || defined(VORTEX) || defined(FT2000) || defined(VORTEXM4)
 
 #define SGEMM_DEFAULT_UNROLL_M  16
 #define SGEMM_DEFAULT_UNROLL_N  4
@@ -3392,7 +3392,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*FIXME: this should be using the cache size, but there is currently no easy way to
 query that on ARM. So if getarch counted more than 8 cores we simply assume the host
 is a big desktop or server with abundant cache rather than a phone or embedded device */ 
-#if NUM_CORES > 8 || defined(TSV110) || defined(EMAG8180) || defined(VORTEX)|| defined(CORTEXX1)
+#if NUM_CORES > 8 || defined(TSV110) || defined(EMAG8180) || defined(VORTEX)|| defined(CORTEXX1) || defined(VORTEXM4)
   #define SGEMM_DEFAULT_P 512
   #define DGEMM_DEFAULT_P 256
   #define CGEMM_DEFAULT_P 256
@@ -3778,18 +3778,18 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 #define ZGEMM_DEFAULT_UNROLL_N  4
 #define ZGEMM_DEFAULT_UNROLL_MN  16
 
-#define SGEMM_DEFAULT_P	128
-#define DGEMM_DEFAULT_P	160
+#define SGEMM_DEFAULT_P 128
+#define DGEMM_DEFAULT_P 128
 #define CGEMM_DEFAULT_P 128
 #define ZGEMM_DEFAULT_P 128
 
-#define SGEMM_DEFAULT_Q 352
-#define DGEMM_DEFAULT_Q 128
+#define SGEMM_DEFAULT_Q 896
+#define DGEMM_DEFAULT_Q 448
 #define CGEMM_DEFAULT_Q 224
 #define ZGEMM_DEFAULT_Q 112
 
-#define SGEMM_DEFAULT_R 4096
-#define DGEMM_DEFAULT_R 4096
+#define SGEMM_DEFAULT_R 3072
+#define DGEMM_DEFAULT_R 3072
 #define CGEMM_DEFAULT_R 4096
 #define ZGEMM_DEFAULT_R 4096
 
@@ -3864,10 +3864,12 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 
 #endif /* ARMv8 */
 
-#if defined(ARMV9SME) /* ARMv9 SME */
+#if defined(ARMV9SME) || (defined(VORTEXM4)&&defined(__clang__))  /* ARMv9 SME */
 #define USE_SGEMM_KERNEL_DIRECT 1
 #define USE_SSYMM_KERNEL_DIRECT 1
 #define USE_STRMM_KERNEL_DIRECT 1
+#define USE_SSYRK_KERNEL_DIRECT 1
+#define USE_SSYR2K_KERNEL_DIRECT 1
 #endif /* ARMv9 SME */
 
 #if defined(ARMV5)
