@@ -486,6 +486,7 @@ LIBSUFFIX = a
 
 ifeq ($(C_COMPILER), CLANG)
 CCOMMON_OPT	+= -DMS_ABI
+CCOMMON_OPT += -fvisibility=hidden
 endif
 
 #Version tests for supporting specific features (MS_ABI, POWER9 intrinsics)
@@ -493,6 +494,7 @@ ifeq ($(GCCVERSIONGT4), 1)
 # GCC Major version > 4
 # It is compatible with MSVC ABI.
 CCOMMON_OPT	+= -DMS_ABI
+CCOMMON_OPT += -fvisibility=hidden
 endif
 
 ifeq ($(GCCVERSIONGTEQ4), 1)

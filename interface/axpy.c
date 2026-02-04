@@ -47,7 +47,6 @@
 #define MULTI_THREAD_MINIMAL  10000
 #endif
 
-
 OPENBLAS_EXPORT
 #ifndef CBLAS
 

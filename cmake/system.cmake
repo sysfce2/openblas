@@ -742,6 +742,7 @@ if (BUILD_HFLOAT16)
 endif()
 if(NOT MSVC)
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${CCOMMON_OPT}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 endif()
 # TODO: not sure what PFLAGS is -hpa
 set(PFLAGS "${PFLAGS} ${CCOMMON_OPT} -I${TOPDIR} -DPROFILE ${COMMON_PROF}")

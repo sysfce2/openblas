@@ -29,7 +29,6 @@
 TOPDIR	= ..
 include $(TOPDIR)/Makefile.system
 
-
 SUPPORT_GEMM3M = 0
 
 ifeq ($(ARCH), x86)
