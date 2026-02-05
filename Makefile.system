@@ -486,7 +486,6 @@ LIBSUFFIX = a
 
 ifeq ($(C_COMPILER), CLANG)
 CCOMMON_OPT	+= -DMS_ABI
-CCOMMON_OPT += -fvisibility=hidden
 endif
 
 #Version tests for supporting specific features (MS_ABI, POWER9 intrinsics)
@@ -494,7 +493,6 @@ ifeq ($(GCCVERSIONGT4), 1)
 # GCC Major version > 4
 # It is compatible with MSVC ABI.
 CCOMMON_OPT	+= -DMS_ABI
-CCOMMON_OPT += -fvisibility=hidden
 endif
 
 ifeq ($(GCCVERSIONGTEQ4), 1)
@@ -594,11 +592,13 @@ ifeq ($(F_COMPILER), GFORTRAN)
 ifeq ($(C_COMPILER), $(filter $(C_COMPILER),GCC LSB))
 EXPRECISION	= 1
 CCOMMON_OPT	+= -DEXPRECISION -m128bit-long-double
+CCOMMON_OPT	+= -fvisibility=hidden
 FCOMMON_OPT	+= -m128bit-long-double
 endif
 ifeq ($(C_COMPILER), CLANG)
 EXPRECISION	= 1
 CCOMMON_OPT	+= -DEXPRECISION
+CCOMMON_OPT	+= -fvisibility=hidden
 FCOMMON_OPT	+= -m128bit-long-double
 endif
 endif
@@ -617,11 +617,13 @@ ifeq ($(F_COMPILER), GFORTRAN)
 ifeq ($(C_COMPILER), $(filter $(C_COMPILER),GCC LSB))
 EXPRECISION	= 1
 CCOMMON_OPT	+= -DEXPRECISION -m128bit-long-double
+CCOMMON_OPT	+= -fvisibility=hidden
 FCOMMON_OPT	+= -m128bit-long-double
 endif
 ifeq ($(C_COMPILER), CLANG)
 EXPRECISION	= 1
 CCOMMON_OPT	+= -DEXPRECISION
+CCOMMON_OPT	+= -fvisibility=hidden
 FCOMMON_OPT	+= -m128bit-long-double
 endif
 endif

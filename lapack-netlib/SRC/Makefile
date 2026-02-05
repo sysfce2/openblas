@@ -76,7 +76,7 @@ ALLMOD = la_xisnan.mod la_constants.mod
 else
 .SUFFIXES: .c .o
 .c.o:
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(filter-out -fvisibility=hidden, $(CFLAGS)) -c -o $@ $<
 endif
 
 ALLAUX_O = ilaenv.o ilaenv2stage.o ieeeck.o lsamen.o xerbla.o xerbla_array.o \
@@ -689,11 +689,11 @@ la_xisnan.o: la_xisnan.F90 la_constants.mod
 la_constants.o: la_constants.f90
 	$(FC) $(FFLAGS) -c -o $@ $<
 else
-slaruv.o: slaruv.c ; $(CC) $(CFLAGS) -c -o $@ $<
-dlaruv.o: dlaruv.c ; $(CC) $(CFLAGS) -c -o $@ $<
-sla_wwaddw.o: sla_wwaddw.c ; $(CC) $(CFLAGS) -c -o $@ $<
-dla_wwaddw.o: dla_wwaddw.c ; $(CC) $(CFLAGS) -c -o $@ $<
-cla_wwaddw.o: cla_wwaddw.c ; $(CC) $(CFLAGS) -c -o $@ $<
-zla_wwaddw.o: zla_wwaddw.c ; $(CC) $(CFLAGS) -c -o $@ $<
+slaruv.o: slaruv.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
+dlaruv.o: dlaruv.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
+sla_wwaddw.o: sla_wwaddw.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
+dla_wwaddw.o: dla_wwaddw.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
+cla_wwaddw.o: cla_wwaddw.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
+zla_wwaddw.o: zla_wwaddw.c ; $(CC) $(CFLAGS) -I../.. -c -o $@ $<
 endif
 
