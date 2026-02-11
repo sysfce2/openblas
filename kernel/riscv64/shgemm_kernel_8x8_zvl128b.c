@@ -8,6 +8,9 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
     BLASLONG gvl = 0;
     BLASLONG m_top = 0;
     BLASLONG n_top = 0;
+#ifdef FP16_NARROW
+    IFLOAT alpha16 = (IFLOAT)(alpha);
+#endif
 
     // -- MAIN PASS
     for (BLASLONG j=0; j<N/8; j+=1) {
@@ -100,14 +103,14 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             vfloat32m2_t c7 = __riscv_vle32_v_f32m2( &C[ci], gvl); ci += ldc-gvl*0;
 
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha, result1, gvl);
-            c2 = __riscv_vfwmacc_vf_f32m2(c2, alpha, result2, gvl);
-            c3 = __riscv_vfwmacc_vf_f32m2(c3, alpha, result3, gvl);
-            c4 = __riscv_vfwmacc_vf_f32m2(c4, alpha, result4, gvl);
-            c5 = __riscv_vfwmacc_vf_f32m2(c5, alpha, result5, gvl);
-            c6 = __riscv_vfwmacc_vf_f32m2(c6, alpha, result6, gvl);
-            c7 = __riscv_vfwmacc_vf_f32m2(c7, alpha, result7, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha16, result1, gvl);
+            c2 = __riscv_vfwmacc_vf_f32m2(c2, alpha16, result2, gvl);
+            c3 = __riscv_vfwmacc_vf_f32m2(c3, alpha16, result3, gvl);
+            c4 = __riscv_vfwmacc_vf_f32m2(c4, alpha16, result4, gvl);
+            c5 = __riscv_vfwmacc_vf_f32m2(c5, alpha16, result5, gvl);
+            c6 = __riscv_vfwmacc_vf_f32m2(c6, alpha16, result6, gvl);
+            c7 = __riscv_vfwmacc_vf_f32m2(c7, alpha16, result7, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m2(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m2(c1, alpha, result1, gvl);
@@ -225,14 +228,14 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             ci += ldc - gvl * 0;
             vfloat32m1_t c7 = __riscv_vle32_v_f32m1(&C[ci], gvl);
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha, result1, gvl);
-            c2 = __riscv_vfwmacc_vf_f32m1(c2, alpha, result2, gvl);
-            c3 = __riscv_vfwmacc_vf_f32m1(c3, alpha, result3, gvl);
-            c4 = __riscv_vfwmacc_vf_f32m1(c4, alpha, result4, gvl);
-            c5 = __riscv_vfwmacc_vf_f32m1(c5, alpha, result5, gvl);
-            c6 = __riscv_vfwmacc_vf_f32m1(c6, alpha, result6, gvl);
-            c7 = __riscv_vfwmacc_vf_f32m1(c7, alpha, result7, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha16, result1, gvl);
+            c2 = __riscv_vfwmacc_vf_f32m1(c2, alpha16, result2, gvl);
+            c3 = __riscv_vfwmacc_vf_f32m1(c3, alpha16, result3, gvl);
+            c4 = __riscv_vfwmacc_vf_f32m1(c4, alpha16, result4, gvl);
+            c5 = __riscv_vfwmacc_vf_f32m1(c5, alpha16, result5, gvl);
+            c6 = __riscv_vfwmacc_vf_f32m1(c6, alpha16, result6, gvl);
+            c7 = __riscv_vfwmacc_vf_f32m1(c7, alpha16, result7, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m1(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m1(c1, alpha, result1, gvl);
@@ -343,22 +346,22 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             
             BLASLONG ci=n_top*ldc+m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 0 * ldc + 1] += alpha * (float)(result1);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result2);
-            C[ci + 1 * ldc + 1] += alpha * (float)(result3);
-            C[ci + 2 * ldc + 0] += alpha * (float)(result4);
-            C[ci + 2 * ldc + 1] += alpha * (float)(result5);
-            C[ci + 3 * ldc + 0] += alpha * (float)(result6);
-            C[ci + 3 * ldc + 1] += alpha * (float)(result7);
-            C[ci + 4 * ldc + 0] += alpha * (float)(result8);
-            C[ci + 4 * ldc + 1] += alpha * (float)(result9);
-            C[ci + 5 * ldc + 0] += alpha * (float)(result10);
-            C[ci + 5 * ldc + 1] += alpha * (float)(result11);
-            C[ci + 6 * ldc + 0] += alpha * (float)(result12);
-            C[ci + 6 * ldc + 1] += alpha * (float)(result13);
-            C[ci + 7 * ldc + 0] += alpha * (float)(result14);
-            C[ci + 7 * ldc + 1] += alpha * (float)(result15);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 0 * ldc + 1] += alpha16 * (float)(result1);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result2);
+            C[ci + 1 * ldc + 1] += alpha16 * (float)(result3);
+            C[ci + 2 * ldc + 0] += alpha16 * (float)(result4);
+            C[ci + 2 * ldc + 1] += alpha16 * (float)(result5);
+            C[ci + 3 * ldc + 0] += alpha16 * (float)(result6);
+            C[ci + 3 * ldc + 1] += alpha16 * (float)(result7);
+            C[ci + 4 * ldc + 0] += alpha16 * (float)(result8);
+            C[ci + 4 * ldc + 1] += alpha16 * (float)(result9);
+            C[ci + 5 * ldc + 0] += alpha16 * (float)(result10);
+            C[ci + 5 * ldc + 1] += alpha16 * (float)(result11);
+            C[ci + 6 * ldc + 0] += alpha16 * (float)(result12);
+            C[ci + 6 * ldc + 1] += alpha16 * (float)(result13);
+            C[ci + 7 * ldc + 0] += alpha16 * (float)(result14);
+            C[ci + 7 * ldc + 1] += alpha16 * (float)(result15);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 0 * ldc + 1] += alpha * result1;
@@ -433,14 +436,14 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
 
             BLASLONG ci = n_top * ldc + m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result1);
-            C[ci + 2 * ldc + 0] += alpha * (float)(result2);
-            C[ci + 3 * ldc + 0] += alpha * (float)(result3);
-            C[ci + 4 * ldc + 0] += alpha * (float)(result4);
-            C[ci + 5 * ldc + 0] += alpha * (float)(result5);
-            C[ci + 6 * ldc + 0] += alpha * (float)(result6);
-            C[ci + 7 * ldc + 0] += alpha * (float)(result7);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result1);
+            C[ci + 2 * ldc + 0] += alpha16 * (float)(result2);
+            C[ci + 3 * ldc + 0] += alpha16 * (float)(result3);
+            C[ci + 4 * ldc + 0] += alpha16 * (float)(result4);
+            C[ci + 5 * ldc + 0] += alpha16 * (float)(result5);
+            C[ci + 6 * ldc + 0] += alpha16 * (float)(result6);
+            C[ci + 7 * ldc + 0] += alpha16 * (float)(result7);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 1 * ldc + 0] += alpha * result1;
@@ -519,10 +522,10 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             vfloat32m2_t c3 = __riscv_vle32_v_f32m2( &C[ci], gvl);
             
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha, result1, gvl);
-            c2 = __riscv_vfwmacc_vf_f32m2(c2, alpha, result2, gvl);
-            c3 = __riscv_vfwmacc_vf_f32m2(c3, alpha, result3, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha16, result1, gvl);
+            c2 = __riscv_vfwmacc_vf_f32m2(c2, alpha16, result2, gvl);
+            c3 = __riscv_vfwmacc_vf_f32m2(c3, alpha16, result3, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m2(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m2(c1, alpha, result1, gvl);
@@ -598,10 +601,10 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             ci += ldc - gvl * 0;
             vfloat32m1_t c3 = __riscv_vle32_v_f32m1(&C[ci], gvl);
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha, result1, gvl);
-            c2 = __riscv_vfwmacc_vf_f32m1(c2, alpha, result2, gvl);
-            c3 = __riscv_vfwmacc_vf_f32m1(c3, alpha, result3, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha16, result1, gvl);
+            c2 = __riscv_vfwmacc_vf_f32m1(c2, alpha16, result2, gvl);
+            c3 = __riscv_vfwmacc_vf_f32m1(c3, alpha16, result3, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m1(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m1(c1, alpha, result1, gvl);
@@ -672,14 +675,14 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             
             BLASLONG ci=n_top*ldc+m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 0 * ldc + 1] += alpha * (float)(result1);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result2);
-            C[ci + 1 * ldc + 1] += alpha * (float)(result3);
-            C[ci + 2 * ldc + 0] += alpha * (float)(result4);
-            C[ci + 2 * ldc + 1] += alpha * (float)(result5);
-            C[ci + 3 * ldc + 0] += alpha * (float)(result6);
-            C[ci + 3 * ldc + 1] += alpha * (float)(result7);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 0 * ldc + 1] += alpha16 * (float)(result1);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result2);
+            C[ci + 1 * ldc + 1] += alpha16 * (float)(result3);
+            C[ci + 2 * ldc + 0] += alpha16 * (float)(result4);
+            C[ci + 2 * ldc + 1] += alpha16 * (float)(result5);
+            C[ci + 3 * ldc + 0] += alpha16 * (float)(result6);
+            C[ci + 3 * ldc + 1] += alpha16 * (float)(result7);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 0 * ldc + 1] += alpha * result1;
@@ -730,10 +733,10 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
 
             BLASLONG ci = n_top * ldc + m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result1);
-            C[ci + 2 * ldc + 0] += alpha * (float)(result2);
-            C[ci + 3 * ldc + 0] += alpha * (float)(result3);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result1);
+            C[ci + 2 * ldc + 0] += alpha16 * (float)(result2);
+            C[ci + 3 * ldc + 0] += alpha16 * (float)(result3);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 1 * ldc + 0] += alpha * result1;
@@ -796,8 +799,8 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             vfloat32m2_t c1 = __riscv_vle32_v_f32m2( &C[ci], gvl); 
             
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha, result1, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m2(c1, alpha16, result1, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m2(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m2(c1, alpha, result1, gvl);
@@ -853,8 +856,8 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             ci += ldc - gvl * 0;
             vfloat32m1_t c1 = __riscv_vle32_v_f32m1(&C[ci], gvl);
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha, result0, gvl);
-            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha, result1, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha16, result0, gvl);
+            c1 = __riscv_vfwmacc_vf_f32m1(c1, alpha16, result1, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m1(c0, alpha, result0, gvl);
             c1 = __riscv_vfmacc_vf_f32m1(c1, alpha, result1, gvl);
@@ -904,10 +907,10 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             
             BLASLONG ci=n_top*ldc+m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 0 * ldc + 1] += alpha * (float)(result1);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result2);
-            C[ci + 1 * ldc + 1] += alpha * (float)(result3);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 0 * ldc + 1] += alpha16 * (float)(result1);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result2);
+            C[ci + 1 * ldc + 1] += alpha16 * (float)(result3);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 0 * ldc + 1] += alpha * result1;
@@ -946,8 +949,8 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
 
             BLASLONG ci = n_top * ldc + m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 1 * ldc + 0] += alpha * (float)(result1);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 1 * ldc + 0] += alpha16 * (float)(result1);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 1 * ldc + 0] += alpha * result1;
@@ -1001,7 +1004,7 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             vfloat32m2_t c0 = __riscv_vle32_v_f32m2( &C[ci], gvl);
             
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha, result0, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m2(c0, alpha16, result0, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m2(c0, alpha, result0, gvl);
 #endif
@@ -1047,7 +1050,7 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
 
             vfloat32m1_t c0 = __riscv_vle32_v_f32m1(&C[ci], gvl);
 #ifdef FP16_NARROW
-            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha, result0, gvl);
+            c0 = __riscv_vfwmacc_vf_f32m1(c0, alpha16, result0, gvl);
 #else
             c0 = __riscv_vfmacc_vf_f32m1(c0, alpha, result0, gvl);
 #endif
@@ -1087,8 +1090,8 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
             
             BLASLONG ci=n_top*ldc+m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
-            C[ci + 0 * ldc + 1] += alpha * (float)(result1);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
+            C[ci + 0 * ldc + 1] += alpha16 * (float)(result1);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
             C[ci + 0 * ldc + 1] += alpha * result1;
@@ -1121,7 +1124,7 @@ int CNAME(BLASLONG M, BLASLONG N, BLASLONG K, FLOAT alpha, IFLOAT *A, IFLOAT *B,
 
             BLASLONG ci = n_top * ldc + m_top;
 #ifdef FP16_NARROW
-            C[ci + 0 * ldc + 0] += alpha * (float)(result0);
+            C[ci + 0 * ldc + 0] += alpha16 * (float)(result0);
 #else
             C[ci + 0 * ldc + 0] += alpha * result0;
 #endif
