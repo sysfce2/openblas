@@ -61,7 +61,7 @@ endif
 ifeq ($(CORE), SKYLAKEX)
 ifndef NO_AVX512
 CCOMMON_OPT += -march=skylake-avx512
-ifeq ($(C_COMPILER, CLANG)
+ifeq ($(C_COMPILER), CLANG)
 CCOMMON_OPT += -mllvm -exhaustive-register-search
 endif
 ifneq ($(F_COMPILER), NAG)
