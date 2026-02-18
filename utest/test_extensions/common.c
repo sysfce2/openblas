@@ -50,7 +50,7 @@ void drand_generate(double *alpha, blasint n)
         alpha[i] = (double)rand() / (double)RAND_MAX;
 }
 
-#ifdef BUILD_SINGLE
+#if defined(BUILD_SINGLE) || defined(BUILD_COMPLEX)
 /**
  * Find difference between two rectangle matrix
  * return norm of differences
@@ -78,7 +78,7 @@ float smatrix_difference(float *a, float *b, blasint cols, blasint rows, blasint
     return norm/(float)(rows);
 }
 #endif
-#ifdef BUILD_DOUBLE
+#if defined(BUILD_DOUBLE) || defined(BUILD_COMPLEX16)
 double dmatrix_difference(double *a, double *b, blasint cols, blasint rows, blasint ld)
 {
     blasint i = 0;
