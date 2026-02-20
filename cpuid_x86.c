@@ -1563,7 +1563,6 @@ int get_cpuname(void){
         break;
       case 11: //family 6 exmodel 11
         switch (model) {
-		  case 5: // Arrow Lake H/U
           case 7: // Raptor Lake
           case 10:
           case 15:
@@ -1589,7 +1588,6 @@ int get_cpuname(void){
             break;
 	  case 15:
 	  case 6: // Arrow Lake
-	  case 5:
 	    if(support_avx512())
               return CPUTYPE_SAPPHIRERAPIDS;
             if(support_avx2())
@@ -1611,8 +1609,30 @@ int get_cpuname(void){
       case 1 :
 	return CPUTYPE_ITANIUM;
       }
+      // new family 15 - 2026 and beyond
+      	  if(support_amx_bf16())
+	    return CPUTYPE_SAPPHIRERAPIDS;
+	  if(support_avx512_bf16())
+            return CPUTYPE_COOPERLAKE;	
+          if(support_avx512())
+            return CPUTYPE_SKYLAKEX;
+          if(support_avx2())
+            return CPUTYPE_HASWELL;
+          if(support_avx())
+            return CPUTYPE_SANDYBRIDGE;
       break;
     }
+    // other new cpu family numbers
+	  if(support_amx_bf16())
+	    return CPUTYPE_SAPPHIRERAPIDS;
+	  if(support_avx512_bf16())
+            return CPUTYPE_COOPERLAKE;	
+          if(support_avx512())
+            return CPUTYPE_SKYLAKEX;
+          if(support_avx2())
+            return CPUTYPE_HASWELL;
+          if(support_avx())
+            return CPUTYPE_SANDYBRIDGE;
     return CPUTYPE_INTEL_UNKNOWN;
   }
 
@@ -2420,7 +2440,6 @@ int get_coretype(void){
 
       case 11:
 	switch (model) {
-	  case 5: // Arrow Lake H/U
 	  case 7: // Raptor Lake
           case 10:
           case 15:
@@ -2437,7 +2456,6 @@ int get_coretype(void){
 	}
       case 12:
 	switch (model) {
-	  case 5:
 	  case 6: // Arrow Lake
 	  if(support_amx_bf16())
 	    return CORE_SAPPHIRERAPIDS;
@@ -2463,7 +2481,28 @@ int get_coretype(void){
       }
     case 15:
       if (model <= 0x2) return CORE_NORTHWOOD;
-      else return CORE_PRESCOTT;
+	  if(support_amx_bf16())
+	    return CORE_SAPPHIRERAPIDS;
+	  if(support_avx512_bf16())
+            return CORE_COOPERLAKE;	
+          if(support_avx512())
+            return CORE_SKYLAKEX;
+          if(support_avx2())
+            return CORE_HASWELL;
+          if(support_avx())
+            return CORE_SANDYBRIDGE;
+      return CORE_PRESCOTT;
+     default : // family types since 2026
+     	  if(support_amx_bf16())
+	    return CORE_SAPPHIRERAPIDS;
+	  if(support_avx512_bf16())
+            return CORE_COOPERLAKE;	
+          if(support_avx512())
+            return CORE_SKYLAKEX;
+          if(support_avx2())
+            return CORE_HASWELL;
+          if(support_avx())
+            return CORE_SANDYBRIDGE;
     }
   }
 
