@@ -1586,7 +1586,19 @@ int get_cpuname(void){
             else
 	      return CPUTYPE_NEHALEM;
             break;
-	  case 15:
+    case 15: // Emerald Rapids
+      if(support_amx_bf16())
+        return CPUTYPE_SAPPHIRERAPIDS;
+      if(support_avx512_bf16())
+        return CPUTYPE_COOPERLAKE;
+      if(support_avx512())
+        return CPUTYPE_SKYLAKEX;
+      if(support_avx2())
+        return CPUTYPE_HASWELL;
+      if(support_avx())
+        return CPUTYPE_SANDYBRIDGE;
+      else
+        return CPUTYPE_NEHALEM;
 	  case 6: // Arrow Lake
 	    if(support_avx512())
               return CPUTYPE_SAPPHIRERAPIDS;
@@ -2456,6 +2468,19 @@ int get_coretype(void){
 	}
       case 12:
 	switch (model) {
+    case 15: // Emerald Rapids
+      if(support_amx_bf16())
+        return CORE_SAPPHIRERAPIDS;
+      if(support_avx512_bf16())
+        return CORE_COOPERLAKE;
+      if(support_avx512())
+        return CORE_SKYLAKEX;
+      if(support_avx2())
+        return CORE_HASWELL;
+      if(support_avx())
+        return CORE_SANDYBRIDGE;
+      else
+        return CORE_NEHALEM;
 	  case 6: // Arrow Lake
 	  if(support_amx_bf16())
 	    return CORE_SAPPHIRERAPIDS;
