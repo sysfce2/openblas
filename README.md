@@ -287,7 +287,7 @@ Please note that it is not possible to combine support for different architectur
 - **AIX**: Supported on PPC up to POWER10 but testing is increasingly problematic due to lack of publicly available systems
 - **Haiku**: Supported by the community. We don't actively test the library on this OS.
 - **SunOS**: Supported by the community. We don't actively test the library on this OS.
-- **Cortex-M**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/docs/install.md#ortex-m>.
+- **Cortex-M**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/docs/install.md#cortex-m>.
 
 ## Usage
 
