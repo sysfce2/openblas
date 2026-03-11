@@ -489,7 +489,7 @@ int get_cacheinfo(int type, cache_info_t *cacheinfo)
     info[12] = BITMASK(edx, 8, 0xff);
     info[13] = BITMASK(edx, 16, 0xff);
     info[14] = BITMASK(edx, 24, 0xff);
-fprintf(stderr,"numcalls needed to retrieve all cache data %d\n",numcalls);
+
     for (i = 0; i < 15; i++) {
       switch (info[i]) {
         /* This table is from http://www.sandpile.org/x86/cpuid.htm */
