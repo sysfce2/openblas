@@ -14,8 +14,16 @@ foreach (GEMM_DEFINE ${GEMM_DEFINES})
   endif ()
   if (BUILD_BFLOAT16)
     GenerateNamedObjects("gemm.c" "${GEMM_DEFINE}" "gemm_${GEMM_DEFINE_LC}" 0 "" "" false "BFLOAT16")
+    GenerateNamedObjects("gemm.c" "${GEMM_DEFINE};BGEMM" "gemm_${GEMM_DEFINE_LC}" 0 "" "" false "BFLOAT16")
     if (USE_THREAD AND NOT USE_SIMPLE_THREADED_LEVEL3)
       GenerateNamedObjects("gemm.c" "${GEMM_DEFINE};THREADED_LEVEL3" "gemm_thread_${GEMM_DEFINE_LC}" 0 "" "" false "BFLOAT16")
+      GenerateNamedObjects("gemm.c" "${GEMM_DEFINE};THREADED_LEVEL3;BGEMM" "gemm_thread_${GEMM_DEFINE_LC}" 0 "" "" false "BFLOAT16")
+    endif ()
+  endif ()
+  if (BUILD_HFLOAT16)
+    GenerateNamedObjects("gemm.c" "${GEMM_DEFINE}" "gemm_${GEMM_DEFINE_LC}" 0 "" "" false "HFLOAT16")
+    if (USE_THREAD AND NOT USE_SIMPLE_THREADED_LEVEL3)
+      GenerateNamedObjects("gemm.c" "${GEMM_DEFINE};THREADED_LEVEL3" "gemm_thread_${GEMM_DEFINE_LC}" 0 "" "" false "HFLOAT16")
     endif ()
   endif ()
 endforeach ()
@@ -68,6 +76,8 @@ if (USE_THREAD)
 endif ()
 
 foreach (float_type ${FLOAT_TYPES})
+  GenerateNamedObjects("gemm_batch_thread.c" "" "gemm_batch_thread" 0 "" "" false ${float_type})
+
   if (${float_type} STREQUAL "COMPLEX" OR ${float_type} STREQUAL "ZCOMPLEX")
     GenerateCombinationObjects("zherk_kernel.c" "LOWER;CONJ" "U;N" "HERK" 2 "herk_kernel" false ${float_type})
     # TRANS needs to be set/unset when CONJ is set/unset, so can't use it as a combination
@@ -169,3 +179,7 @@ endforeach ()
 #
 
 add_library(driver_level3 OBJECT ${OPENBLAS_SRC})
+
+if (USE_OPENMP)
+  target_link_libraries(driver_level3 OpenMP::OpenMP_C)
+endif()

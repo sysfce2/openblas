@@ -1,3 +1,31 @@
+###############################################################################
+# Copyright (c) 2025, The OpenBLAS Project
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name of the OpenBLAS project nor the names of
+#    its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE OPENBLAS PROJECT OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
+
 ifneq ($(C_COMPILER), PGI)
 
 ifeq ($(C_COMPILER), CLANG)
@@ -30,6 +58,16 @@ FCOMMON_OPT += -march=armv8-a+sve
 endif
 endif
 
+ifeq ($(CORE), ARMV9SME)
+CCOMMON_OPT += -march=armv9-a+sve2+sme
+FCOMMON_OPT += -march=armv9-a+sve2
+ifdef OS_WINDOWS
+ifeq ($(C_COMPILER), CLANG)
+CCOMMON_OPT += --aarch64-stack-hazard-size=0
+endif
+endif
+endif
+
 ifeq ($(CORE), CORTEXA53)
 CCOMMON_OPT += -march=armv8-a -mtune=cortex-a53
 ifneq ($(F_COMPILER), NAG)
@@ -55,6 +93,13 @@ ifeq ($(CORE), CORTEXA73)
 CCOMMON_OPT += -march=armv8-a -mtune=cortex-a73
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8-a -mtune=cortex-a73
+endif
+endif
+
+ifeq ($(CORE), CORTEXA76)
+CCOMMON_OPT += -march=armv8.2-a -mtune=cortex-a76
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -march=armv8.2-a -mtune=cortex-a76
 endif
 endif
 
@@ -94,7 +139,7 @@ ifeq ($(CORE), NEOVERSEV1)
 ifeq (1, $(filter 1,$(GCCVERSIONGTEQ7) $(ISCLANG)))
 ifeq (1, $(filter 1,$(GCCVERSIONGTEQ10) $(ISCLANG)))
 ifeq (1, $(filter 1,$(GCCMINORVERSIONGTEQ4) $(GCCVERSIONGTEQ11) $(ISCLANG)))
-CCOMMON_OPT += -march=armv8.4-a+sve
+CCOMMON_OPT += -march=armv8.4-a+sve+bf16
 ifeq (1, $(ISCLANG))
 CCOMMON_OPT += -mtune=cortex-x1
 else
@@ -104,7 +149,7 @@ ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.4-a -mtune=neoverse-v1
 endif
 else
-CCOMMON_OPT += -march=armv8.4-a+sve 
+CCOMMON_OPT += -march=armv8.4-a+sve+bf16 
 ifneq ($(CROSS), 1)
 CCOMMON_OPT += -mtune=native
 endif
@@ -138,13 +183,13 @@ ifeq (1, $(filter 1,$(GCCMINORVERSIONGTEQ4) $(GCCVERSIONGTEQ11) $(ISCLANG)))
 ifneq ($(OSNAME), Darwin)
 CCOMMON_OPT += -march=armv8.5-a+sve+sve2+bf16 -mtune=neoverse-n2
 else
-CCOMMON_OPT += -march=armv8.2-a+sve -mtune=cortex-a72
+CCOMMON_OPT += -march=armv8.2-a+sve+bf16 -mtune=cortex-a72
 endif
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.5-a+sve+sve2+bf16 -mtune=neoverse-n2
 endif
 else
-CCOMMON_OPT += -march=armv8.5-a+sve
+CCOMMON_OPT += -march=armv8.5-a+sve+bf16
 ifneq ($(CROSS), 1)
 CCOMMON_OPT += -mtune=native
 endif
@@ -156,15 +201,40 @@ endif
 endif
 endif
 else
-CCOMMON_OPT += -march=armv8.2-a+sve -mtune=cortex-a72
+CCOMMON_OPT += -march=armv8.2-a+sve+bf16 -mtune=cortex-a72
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.2-a -mtune=cortex-a72
 endif
 endif
 else
-CCOMMON_OPT += -march=armv8-a+sve -mtune=cortex-a72
+CCOMMON_OPT += -march=armv8-a+sve+bf16 -mtune=cortex-a72
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8-a -mtune=cortex-a72
+endif
+endif
+endif
+
+# Detect ARM Neoverse V2.
+ifeq ($(CORE), NEOVERSEV2)
+ifeq (1, $(filter 1,$(GCCVERSIONGTEQ13) $(ISCLANG)))
+CCOMMON_OPT += -mcpu=neoverse-v2
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -mcpu=neoverse-v2
+endif
+else
+CCOMMON_OPT += -march=armv8.2-a+sve+bf16 -mtune=neoverse-n1
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -march=armv8.2-a -mtune=neoverse-n1
+endif
+endif
+endif
+
+# Detect Ampere AmpereOne(ampere1,ampere1a) processors.
+ifeq ($(CORE), AMPERE1)
+ifeq (1, $(filter 1,$(GCCVERSIONGTEQ12) $(ISCLANG)))
+CCOMMON_OPT += -march=armv8.6-a+crypto+crc+fp16+sha3+rng
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -march=armv8.6-a+crypto+crc+fp16+sha3+rng
 endif
 endif
 endif
@@ -238,6 +308,20 @@ FCOMMON_OPT += -march=armv8.3-a
 endif
 endif
 
+ifeq ($(CORE), VORTEXM4)
+ifneq ($(C_COMPILER), GCC)
+ifeq ($(APPLECLANG),1)
+CCOMMON_OPT += -march=armv8.4-a+sme
+else
+CCOMMON_OPT += -march=armv8.4-a+sme
+override LDFLAGS += -lclang_rt_builtins-aarch64
+endif
+else
+CCOMMON_OPT += -march=armv8.4-a
+endif
+FCOMMON_OPT += -march=armv8.4-a
+endif
+
 ifeq (1, $(filter 1,$(GCCVERSIONGTEQ9) $(ISCLANG)))
 ifeq ($(CORE), TSV110)
 CCOMMON_OPT += -march=armv8.2-a -mtune=tsv110
@@ -259,20 +343,35 @@ endif
 endif
 endif
 
-ifeq (1, $(filter 1,$(GCCVERSIONGTEQ11) $(ISCLANG)))
 ifeq ($(CORE), A64FX)
+ifeq (1, $(filter 1,$(GCCVERSIONGTEQ10) $(ISCLANG)))
+ifeq (1, $(filter 1,$(GCCMINORVERSIONGTEQ3) $(GCCVERSIONGTEQ11) $(ISCLANG)))
 CCOMMON_OPT += -march=armv8.2-a+sve -mtune=a64fx
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.2-a+sve -mtune=a64fx
+endif
+else
+CCOMMON_OPT += -march=armv8.4-a+sve -mtune=neoverse-n1
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -march=armv8.4-a -mtune=neoverse-n1
+endif
 endif
 endif
 endif
 
 ifeq (1, $(filter 1,$(GCCVERSIONGTEQ11) $(ISCLANG)))
 ifeq ($(CORE), CORTEXX1)
-CCOMMON_OPT += -march=armv8.2-a -mtune=cortexa72
+CCOMMON_OPT += -march=armv8.2-a
+ifeq (1, $(filter 1,$(GCCMINORVERSIONGTEQ4) $(GCCVERSIONGTEQ12) $(ISCLANG)))
+CCOMMON_OPT += -mtune=cortex-x1
 ifneq ($(F_COMPILER), NAG)
-FCOMMON_OPT += -march=armv8.2-a -mtune=cortexa72
+FCOMMON_OPT += -march=armv8.2-a -mtune=cortex-x1
+endif
+else
+CCOMMON_OPT += -mtune=cortex-a72
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -march=armv8.2-a -mtune=cortex-a72
+endif
 endif
 endif
 endif
@@ -282,6 +381,12 @@ ifeq ($(CORE), CORTEXX2)
 CCOMMON_OPT += -march=armv8.4-a+sve
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.4-a+sve
+endif
+ifeq (1, $(filter 1,$(GCCVERSIONGTEQ12) $(ISCLANG)))
+CCOMMON_OPT += -mtune=cortex-x2
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -mtune=cortex-x2
+endif
 endif
 endif
 endif
@@ -302,9 +407,42 @@ CCOMMON_OPT += -march=armv8.4-a+sve
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=armv8.4-a+sve
 endif
+ifeq (1, $(filter 1,$(GCCVERSIONGTEQ12) $(ISCLANG)))
+CCOMMON_OPT += -mtune=cortex-a710
+ifneq ($(F_COMPILER), NAG)
+FCOMMON_OPT += -mtune=cortex-a710
+endif
+endif
 endif
 endif
 
+endif
+
+else
+# NVIDIA HPC options necessary to enable SVE in the compiler
+ifeq ($(CORE), THUNDERX2T99)
+CCOMMON_OPT += -tp=thunderx2t99
+FCOMMON_OPT += -tp=thunderx2t99
+endif
+ifeq ($(CORE), NEOVERSEN1)
+CCOMMON_OPT += -tp=neoverse-n1
+FCOMMON_OPT += -tp=neoverse-n1
+endif
+ifeq ($(CORE), NEOVERSEV1)
+CCOMMON_OPT += -tp=neoverse-v1
+FCOMMON_OPT += -tp=neoverse-v1
+endif
+ifeq ($(CORE), NEOVERSEV2)
+CCOMMON_OPT += -tp=neoverse-v2
+FCOMMON_OPT += -tp=neoverse-v2
+endif
+ifeq ($(CORE), ARMV8SVE)
+CCOMMON_OPT += -tp=neoverse-v2
+FCOMMON_OPT += -tp=neoverse-v2
+endif
+ifeq ($(CORE), ARMV9SVE)
+CCOMMON_OPT += -tp=neoverse-v2
+FCOMMON_OPT += -tp=neoverse-v2
 endif
 
 endif

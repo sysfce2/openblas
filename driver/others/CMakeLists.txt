@@ -13,6 +13,8 @@ if (USE_THREAD)
     set(BLAS_SERVER blas_server_omp.c)
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
     set(BLAS_SERVER blas_server_win32.c)
+  elseif (${CMAKE_SYSTEM_NAME} STREQUAL CYGWIN)
+    set(BLAS_SERVER blas_server_win32.c)
   elseif (${CMAKE_SYSTEM_NAME} STREQUAL "WindowsStore")
     set(BLAS_SERVER blas_server_win32.c)
   endif ()
@@ -39,6 +41,7 @@ set(COMMON_SOURCES
   openblas_env.c
   openblas_get_num_procs.c
   openblas_get_num_threads.c
+  blas_server_callback.c
 )
 
 # these need to have NAME/CNAME set, so use GenerateNamedObjects, but don't use standard name mangling
@@ -51,6 +54,12 @@ if (DYNAMIC_ARCH)
     list(APPEND COMMON_SOURCES dynamic_arm64.c)
   elseif (POWER)
     list(APPEND COMMON_SOURCES dynamic_power.c)
+  elseif (ZARCH)
+    list(APPEND COMMON_SOURCES dynamic_zarch.c)
+  elseif (RISCV64)
+    list(APPEND COMMON_SOURCES dynamic_riscv64.c detect_riscv64.c)
+  elseif (LOONGARCH64)
+    list(APPEND COMMON_SOURCES dynamic_loongarch64.c)
   else ()  
     list(APPEND COMMON_SOURCES dynamic.c)
   endif ()  
@@ -83,3 +92,7 @@ endif ()
 #endif
 
 add_library(driver_others OBJECT ${OPENBLAS_SRC} ${MEMORY} ${SMP_SOURCES} ${COMMON_SOURCES})
+
+if (USE_OPENMP)
+  target_link_libraries(driver_others OpenMP::OpenMP_C)
+endif()

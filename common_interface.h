@@ -1,5 +1,6 @@
 /*********************************************************************/
 /* Copyright 2009, 2010 The University of Texas at Austin.           */
+/* Copyright 2025 The OpenBLAS Project.                              */
 /* All rights reserved.                                              */
 /*                                                                   */
 /* Redistribution and use in source and binary forms, with or        */
@@ -47,6 +48,11 @@ int    BLASFUNC(xerbla)(char *, blasint *info, blasint);
 
 void    openblas_set_num_threads_(int *);
 
+/*Set the threading backend to a custom callback.*/
+typedef void (*openblas_dojob_callback)(int thread_num, void *jobdata, int dojob_data);
+typedef void (*openblas_threads_callback)(int sync, openblas_dojob_callback dojob, int numjobs, size_t jobdata_elsize, void *jobdata, int dojob_data);
+extern openblas_threads_callback openblas_threads_callback_;
+
 FLOATRET  BLASFUNC(sdot)  (blasint *, float  *, blasint *, float  *, blasint *);
 FLOATRET  BLASFUNC(sdsdot)(blasint *, float  *,        float  *, blasint *, float  *, blasint *);
 
@@ -54,6 +60,7 @@ double BLASFUNC(dsdot) (blasint *, float  *, blasint *, float  *, blasint *);
 double BLASFUNC(ddot)  (blasint *, double *, blasint *, double *, blasint *);
 xdouble BLASFUNC(qdot)  (blasint *, xdouble *, blasint *, xdouble *, blasint *);
 
+void   BLASFUNC(bscal) (blasint *,  bfloat16  *, bfloat16  *, blasint *);
 float  BLASFUNC(sbdot)     (blasint *, bfloat16 *, blasint *, bfloat16 *, blasint *);
 void   BLASFUNC(sbstobf16) (blasint *, float *,    blasint *, bfloat16 *, blasint *);
 void   BLASFUNC(sbdtobf16) (blasint *, double *,   blasint *, bfloat16 *, blasint *);
@@ -250,8 +257,12 @@ void BLASFUNC(xgeru)(blasint *,    blasint *, xdouble *, xdouble *, blasint *,
 void BLASFUNC(xgerc)(blasint *,    blasint *, xdouble *, xdouble *, blasint *,
 		    xdouble *, blasint *, xdouble *, blasint *);
 
+void BLASFUNC(bgemv)(char *, blasint *, blasint *, bfloat16  *, bfloat16 *, blasint *,
+            bfloat16  *, blasint *, bfloat16  *, bfloat16  *, blasint *);
 void BLASFUNC(sbgemv)(char *, blasint *, blasint *, float  *, bfloat16 *, blasint *,
             bfloat16  *, blasint *, float  *, float  *, blasint *);
+void BLASFUNC(shgemv)(char *, blasint *, blasint *, float  *, hfloat16 *, blasint *,
+            hfloat16  *, blasint *, float  *, float  *, blasint *);
 void BLASFUNC(sgemv)(char *, blasint *, blasint *, float  *, float  *, blasint *,
 		    float  *, blasint *, float  *, float  *, blasint *);
 void BLASFUNC(dgemv)(char *, blasint *, blasint *, double *, double *, blasint *,
@@ -476,6 +487,10 @@ void BLASFUNC(xhbmv)(char *, blasint *, blasint *, xdouble *, xdouble *, blasint
 
 /* Level 3 routines */
 
+void BLASFUNC(shgemm)(char *, char *, blasint *, blasint *, blasint *, float *,
+	   hfloat16  *, blasint *, hfloat16 *, blasint *, float  *, float  *, blasint *);
+void BLASFUNC(bgemm)(char *, char *, blasint *, blasint *, blasint *, bfloat16 *,
+	   bfloat16 *, blasint *, bfloat16 *, blasint *, bfloat16 *, bfloat16 *, blasint *);
 void BLASFUNC(sbgemm)(char *, char *, blasint *, blasint *, blasint *, float *,
 	   bfloat16 *, blasint *, bfloat16 *, blasint *, float *, float *, blasint *);
 void BLASFUNC(sgemm)(char *, char *, blasint *, blasint *, blasint *, float *,

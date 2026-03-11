@@ -52,8 +52,8 @@ static inline _Complex double * _pCd(doublecomplex *z) {return (_Complex double*
 #endif
 #define pCf(z) (*_pCf(z))
 #define pCd(z) (*_pCd(z))
-typedef int logical;
-typedef short int shortlogical;
+typedef blasint logical;
+
 typedef char logical1;
 typedef char integer1;
 
@@ -260,7 +260,7 @@ static char junk[] = "\n@(#)LIBF77 VERSION 19990503\n";
 
 /* procedure parameter types for -A and -C++ */
 
-#define F2C_proc_par_types 1
+
 #ifdef __cplusplus
 typedef logical (*L_fp)(...);
 #else
@@ -745,7 +745,7 @@ integer iparmq_(integer *ispec, char *name__, char *opts, integer *n, integer
     /* Local variables */
     integer i__, ic, nh, ns, iz;
     char subnam[6];
-    integer name_len;
+    integer name_len=0;
 
 /*  -- LAPACK auxiliary routine (version 3.7.1) -- */
 /*  -- LAPACK is a software package provided by Univ. of Tennessee,    -- */

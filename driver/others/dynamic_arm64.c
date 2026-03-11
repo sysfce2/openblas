@@ -38,9 +38,18 @@
 /*********************************************************************/
 
 #include "common.h"
+#include <strings.h>
 #if (defined OS_LINUX || defined OS_ANDROID)
 #include <asm/hwcap.h>
 #include <sys/auxv.h>
+#endif
+
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+int32_t value;
+size_t length=sizeof(value);
+int64_t value64;
+size_t length64=sizeof(value64);
 #endif
 
 extern gotoblas_t  gotoblas_ARMV8;
@@ -115,10 +124,26 @@ extern gotoblas_t gotoblas_ARMV8SVE;
 #else
 #define gotoblas_ARMV8SVE gotoblas_ARMV8
 #endif
-#ifdef DYN_CORTEX_A55
+#ifdef DYN_ARMV9SME
+extern gotoblas_t gotoblas_ARMV9SME;
+#else
+#define gotoblas_ARMV9SME gotoblas_ARMV8
+#endif
+#ifdef DYN_VORTEXM4
+extern gotoblas_t gotoblas_VORTEXM4;
+#else
+#error "dont have vortexm4"
+#define gotoblas_VORTEXM4 gotoblas_ARMV8
+#endif
+#ifdef DYN_CORTEXA55
 extern gotoblas_t  gotoblas_CORTEXA55;
 #else
 #define gotoblas_CORTEXA55 gotoblas_ARMV8
+#endif
+#ifdef DYN_A64FX
+extern gotoblas_t gotoblas_A64FX;
+#else
+#define gotoblas_A64FX gotoblas_ARMV8
 #endif
 #else
 extern gotoblas_t  gotoblas_CORTEXA53;
@@ -136,20 +161,38 @@ extern gotoblas_t  gotoblas_NEOVERSEN1;
 extern gotoblas_t  gotoblas_NEOVERSEV1;
 extern gotoblas_t  gotoblas_NEOVERSEN2;
 extern gotoblas_t  gotoblas_ARMV8SVE;
+extern gotoblas_t  gotoblas_A64FX;
 #else
 #define gotoblas_NEOVERSEV1 gotoblas_ARMV8
 #define gotoblas_NEOVERSEN2 gotoblas_ARMV8
 #define gotoblas_ARMV8SVE   gotoblas_ARMV8
+#define gotoblas_A64FX      gotoblas_ARMV8
 #endif
+#ifndef NO_SME
+extern gotoblas_t  gotoblas_ARMV9SME;
+#if defined (__clang__) && defined(OS_DARWIN)
+extern gotoblas_t  gotoblas_VORTEXM4;
+#else
+#define gotoblas_VORTEXM4 gotoblas_NEOVERSEN1
+#endif
+#else
+#ifndef NO_SVE
+#define gotoblas_ARMV9SME gotoblas_ARMV8SVE
+#else
+#define gotoblas_ARMV9SME gotoblas_NEOVERSEN1
+#endif
+#define gotoblas_VORTEXM4 gotoblas_NEOVERSEN1
+#endif
+
 extern gotoblas_t  gotoblas_THUNDERX3T110;
 #endif
-#define gotoblas_NEOVERSEV2 gotoblas_NEOVERSEV1
+#define gotoblas_NEOVERSEV2 gotoblas_NEOVERSEN2
 
 extern void openblas_warning(int verbose, const char * msg);
 #define FALLBACK_VERBOSE 1
 #define NEOVERSEN1_FALLBACK "OpenBLAS : Your OS does not support SVE instructions. OpenBLAS is using Neoverse N1 kernels as a fallback, which may give poorer performance.\n"
 
-#define NUM_CORETYPES   17
+#define NUM_CORETYPES   20
 
 /*
  * In case asm/hwcap.h is outdated on the build system, make sure
@@ -160,6 +203,9 @@ extern void openblas_warning(int verbose, const char * msg);
 #endif
 #ifndef HWCAP_SVE
 #define HWCAP_SVE (1 << 22)
+#endif
+#ifndef HWCAP2_SME
+#define HWCAP2_SME 1<<23
 #endif
 
 #define get_cpu_ftr(id, var) ({					\
@@ -184,6 +230,9 @@ static char *corename[] = {
   "thunderx3t110",
   "cortexa55",
   "armv8sve",
+  "a64fx",
+  "armv9sme",
+  "vortexm4",
   "unknown"
 };
 
@@ -205,6 +254,9 @@ char *gotoblas_corename(void) {
   if (gotoblas == &gotoblas_THUNDERX3T110) return corename[14];
   if (gotoblas == &gotoblas_CORTEXA55)    return corename[15];
   if (gotoblas == &gotoblas_ARMV8SVE)     return corename[16];
+  if (gotoblas == &gotoblas_A64FX)        return corename[17];
+  if (gotoblas == &gotoblas_ARMV9SME)     return corename[18];
+  if (gotoblas == &gotoblas_VORTEXM4)     return corename[19];
   return corename[NUM_CORETYPES];
 }
 
@@ -241,6 +293,9 @@ static gotoblas_t *force_coretype(char *coretype) {
     case 14: return (&gotoblas_THUNDERX3T110);
     case 15: return (&gotoblas_CORTEXA55);
     case 16: return (&gotoblas_ARMV8SVE);
+    case 17: return (&gotoblas_A64FX);
+    case 18: return (&gotoblas_ARMV9SME);
+    case 19: return (&gotoblas_VORTEXM4);
   }
   snprintf(message, 128, "Core not found: %s\n", coretype);
   openblas_warning(1, message);
@@ -252,6 +307,11 @@ static gotoblas_t *get_coretype(void) {
   char coremsg[128];
 
 #if defined (OS_DARWIN)
+#if !defined(NO_SME)
+  if (support_sme1()) {
+   	return &gotoblas_VORTEXM4;
+  }
+#endif
   return &gotoblas_NEOVERSEN1;
 #endif
 	
@@ -261,22 +321,59 @@ static gotoblas_t *get_coretype(void) {
 
   if (!(getauxval(AT_HWCAP) & HWCAP_CPUID)) {
 #ifdef __linux
+	int i;
+        int ncores=0;
+	int prt,cpucap,cpulowperf=0,cpumidperf=0,cpuhiperf=0;
         FILE *infile;
-        char buffer[512], *p, *cpu_part = NULL, *cpu_implementer = NULL;
-        p = (char *) NULL ;
-	infile = fopen("/sys/devices/system/cpu/cpu0/regs/identification/midr_el1","r");
-	if (!infile) return NULL;
-	(void)fgets(buffer, sizeof(buffer), infile);
-	midr_el1=strtoul(buffer,NULL,16);
-	fclose(infile);
-#else
+        char buffer[512], *cpu_part = NULL, *cpu_implementer = NULL;
+
+	infile = fopen("/sys/devices/system/cpu/possible","r");
+	if (infile) {
+		(void)fgets(buffer, sizeof(buffer), infile);
+		sscanf(buffer,"0-%d",&ncores);
+		fclose (infile);
+		ncores++;
+	} else {
+		infile = fopen("/proc/cpuinfo","r");
+                while (fgets(buffer, sizeof(buffer), infile)) {
+                        if (!strncmp("processor", buffer, 9))
+                        ncores++;
+		}
+	}
+	for (i=0;i<ncores;i++) {
+		sprintf(buffer,"/sys/devices/system/cpu/cpu%d/regs/identification/midr_el1",i);
+		infile = fopen(buffer,"r");
+		if (!infile) return NULL;
+		(void)fgets(buffer, sizeof(buffer), infile);
+		midr_el1=strtoul(buffer,NULL,16);
+  		implementer = (midr_el1 >> 24) & 0xFF;
+  		prt        = (midr_el1 >> 4)  & 0xFFF;
+		fclose(infile);
+		sprintf(buffer,"/sys/devices/system/cpu/cpu%d/cpu_capability",i);
+		infile = fopen(buffer,"r");
+		if (infile) {
+			(void)fgets(buffer, sizeof(buffer), infile);
+			cpucap=strtoul(buffer,NULL,16);
+			fclose(infile);
+			if (cpucap >= 1000) cpuhiperf++;
+			else if (cpucap >=500) cpumidperf++;
+			else cpulowperf++;
+			if (cpucap >=1000) part = prt;
+		} else if (implementer == 0x41 ){
+			if (prt >= 0xd4b) cpuhiperf++;
+			else if (prt>= 0xd07) cpumidperf++;
+			else cpulowperf++;
+		} else cpulowperf++;
+	}
+	if (!part) part = prt;
+#else	
     snprintf(coremsg, 128, "Kernel lacks cpuid feature support. Auto detection of core type failed !!!\n");
     openblas_warning(1, coremsg);
     return NULL;
 #endif
   } else {
     get_cpu_ftr(MIDR_EL1, midr_el1);
-  }
+  
   /*
    * MIDR_EL1
    *
@@ -287,7 +384,7 @@ static gotoblas_t *get_coretype(void) {
    */
   implementer = (midr_el1 >> 24) & 0xFF;
   part        = (midr_el1 >> 4)  & 0xFFF;
-
+  }
   switch(implementer)
   {
     case 0x41: // ARM
@@ -346,6 +443,15 @@ static gotoblas_t *get_coretype(void) {
           return &gotoblas_THUNDERX3T110;
       }
       break;
+    case 0x46: // Fujitsu
+      switch (part)
+      {
+#ifndef NO_SVE
+        case 0x001: // A64FX
+          return &gotoblas_A64FX;
+#endif
+      }
+      break;
     case 0x48: // HiSilicon
       switch (part)
       {
@@ -353,11 +459,19 @@ static gotoblas_t *get_coretype(void) {
           return &gotoblas_TSV110;
       }
       break;
-    case 0x50: // Ampere
+    case 0x50: // Ampere/AppliedMicro
       switch (part)
       {
         case 0x000: // Skylark/EMAG8180
           return &gotoblas_EMAG8180;
+      }
+      break;
+    case 0xc0: // Ampere
+      switch(part)
+      {
+	case 0xac3:
+	case 0xac4:
+	  return &gotoblas_NEOVERSEN1;
       }
       break;
     case 0x51: // Qualcomm
@@ -368,12 +482,20 @@ static gotoblas_t *get_coretype(void) {
       }
       break;
     case 0x61: // Apple
+	if (support_sme1()) return &gotoblas_VORTEXM4;
 	return &gotoblas_NEOVERSEN1;
       break;
     default:
       snprintf(coremsg, 128, "Unknown CPU model - implementer %x part %x\n",implementer,part);
       openblas_warning(1, coremsg);
   }
+
+#if !defined(NO_SME)
+  if (support_sme1()) {
+    return &gotoblas_ARMV9SME;
+  }
+#endif
+
 #ifndef NO_SVE
   if ((getauxval(AT_HWCAP) & HWCAP_SVE)) {
     return &gotoblas_ARMV8SVE;
@@ -423,4 +545,20 @@ void gotoblas_dynamic_init(void) {
 
 void gotoblas_dynamic_quit(void) {
   gotoblas = NULL;
+}
+
+int support_sme1(void) {
+        int ret = 0;
+
+#if (defined OS_LINUX || defined OS_ANDROID)
+        ret = getauxval(AT_HWCAP2) & HWCAP2_SME;
+        if(getauxval(AT_HWCAP2) & HWCAP2_SME){
+                ret = 1;
+        }
+#endif
+#if defined(__APPLE__)
+	sysctlbyname("hw.optional.arm.FEAT_SME",&value64,&length64,NULL,0);
+	ret = value64;
+#endif
+       return ret;
 }

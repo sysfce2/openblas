@@ -1,3 +1,31 @@
+###############################################################################
+# Copyright (c) 2025, The OpenBLAS Project
+# All rights reserved.
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name of the OpenBLAS project nor the names of
+#    its contributors may be used to endorse or promote products
+#    derived from this software without specific prior written permission.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE OPENBLAS PROJECT OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
+
 TOPDIR	= ..
 include $(TOPDIR)/Makefile.system
 
@@ -56,9 +84,15 @@ GOTO_LAPACK_TARGETS=
 endif
 
 ifeq ($(BUILD_BFLOAT16),1)
-GOTO_HALF_TARGETS=sbgemm.goto
+GOTO_BFLOAT_TARGETS=bgemm.goto sbgemm.goto bgemv.goto sbgemv.goto
 else
-GOTO_HALF_TARGETS=
+GOTO_BFLOAT_TARGETS=
+endif
+
+ifeq ($(BUILD_HFLOAT16),1)
+GOTO_HFLOAT_TARGETS=shgemm.goto
+else
+GOTO_HFLOAT_TARGETS=
 endif
 
 ifeq ($(OSNAME), WINNT)
@@ -103,7 +137,8 @@ goto :: slinpack.goto dlinpack.goto clinpack.goto zlinpack.goto \
        sgetri.goto dgetri.goto cgetri.goto zgetri.goto \
        spotrf.goto dpotrf.goto cpotrf.goto zpotrf.goto \
        ssymm.goto dsymm.goto csymm.goto zsymm.goto \
-       saxpby.goto daxpby.goto caxpby.goto zaxpby.goto $(GOTO_HALF_TARGETS)
+       somatcopy.goto domatcopy.goto comatcopy.goto zomatcopy.goto \
+       saxpby.goto daxpby.goto caxpby.goto zaxpby.goto $(GOTO_BFLOAT_TARGETS) $(GOTO_HFLOAT_TARGETS)
 
 acml :: slinpack.acml dlinpack.acml clinpack.acml zlinpack.acml \
        scholesky.acml dcholesky.acml ccholesky.acml zcholesky.acml \
@@ -276,7 +311,8 @@ goto :: sgemm.goto dgemm.goto cgemm.goto zgemm.goto \
        samin.goto damin.goto camin.goto zamin.goto \
        smin.goto dmin.goto \
        saxpby.goto daxpby.goto caxpby.goto zaxpby.goto \
-       snrm2.goto dnrm2.goto scnrm2.goto dznrm2.goto $(GOTO_LAPACK_TARGETS) $(GOTO_HALF_TARGETS)
+       somatcopy.goto domatcopy.goto comatcopy.goto zomatcopy.goto \
+       snrm2.goto dnrm2.goto scnrm2.goto dznrm2.goto $(GOTO_LAPACK_TARGETS) $(GOTO_BFLOAT_TARGETS) $(GOTO_HFLOAT_TARGETS)
 
 acml :: slinpack.acml dlinpack.acml clinpack.acml zlinpack.acml \
        scholesky.acml dcholesky.acml ccholesky.acml zcholesky.acml \
@@ -627,7 +663,18 @@ zcholesky.essl : zcholesky.$(SUFFIX)
 
 ##################################### Sgemm ####################################################
 ifeq ($(BUILD_BFLOAT16),1)
+bgemm.goto : bgemm.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
 sbgemm.goto : sbgemm.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+bgemv.goto : bgemv.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+sbgemv.goto : sbgemv.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+endif
+
+ifeq ($(BUILD_HFLOAT16),1)
+shgemm.goto : shgemm.$(SUFFIX) ../$(LIBNAME)
 	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
 endif
 
@@ -2906,6 +2953,29 @@ dznrm2.goto : dznrm2.$(SUFFIX) ../$(LIBNAME)
 dznrm2.atlas : dznrm2.$(SUFFIX)
 	-$(CC) $(CFLAGS) -o $(@F) $^ $(LIBATLAS) $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB)
 
+###################################################################################################
+
+############################################ SOMATCOPY ############################################
+somatcopy.goto : somatcopy.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+
+###################################################################################################
+
+############################################ DOMATCOPY ############################################
+domatcopy.goto : domatcopy.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+
+###################################################################################################
+
+############################################ COMATCOPY ############################################
+comatcopy.goto : comatcopy.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
+
+###################################################################################################
+
+############################################ ZOMATCOPY ############################################
+zomatcopy.goto : zomatcopy.$(SUFFIX) ../$(LIBNAME)
+	$(CC) $(CFLAGS) -o $(@F) $^ $(CEXTRALIB) $(EXTRALIB) $(FEXTRALIB) -lm
 
 ###################################################################################################
 
@@ -2934,8 +3004,15 @@ zcholesky.$(SUFFIX) : cholesky.c
 	$(CC) $(CFLAGS) -c -DCOMPLEX -DDOUBLE -o $(@F) $^
 
 ifeq ($(BUILD_BFLOAT16),1)
+bgemm.$(SUFFIX) : gemm.c
+	$(CC) $(CFLAGS) -c -DBFLOAT16 -DBGEMM -UCOMPLEX -UDOUBLE -o $(@F) $^
 sbgemm.$(SUFFIX) : gemm.c
-	$(CC) $(CFLAGS) -c -DHALF -UCOMPLEX -UDOUBLE -o $(@F) $^
+	$(CC) $(CFLAGS) -c -DBFLOAT16 -UCOMPLEX -UDOUBLE -o $(@F) $^
+endif
+
+ifeq ($(BUILD_HFLOAT16),1)
+shgemm.$(SUFFIX) : gemm.c
+	$(CC) $(CFLAGS) -c -DHFLOAT16 -UCOMPLEX -UDOUBLE -o $(@F) $^
 endif
 
 sgemm.$(SUFFIX) : gemm.c
@@ -3072,6 +3149,13 @@ dgemv.$(SUFFIX) : gemv.c
 
 cgemv.$(SUFFIX) : gemv.c
 	$(CC) $(CFLAGS) -c -DCOMPLEX -UDOUBLE -o $(@F) $^
+
+ifeq ($(BUILD_BFLOAT16),1) 
+bgemv.$(SUFFIX) : gemv.c
+	$(CC) $(CFLAGS) -c -DBFLOAT16 -DBGEMM -UCOMPLEX -UDOUBLE -o $(@F) $^
+sbgemv.$(SUFFIX) : gemv.c
+	$(CC) $(CFLAGS) -c -DBFLOAT16 -UCOMPLEX -UDOUBLE -o $(@F) $^
+endif
 
 zgemv.$(SUFFIX) : gemv.c
 	$(CC) $(CFLAGS) -c -DCOMPLEX -DDOUBLE -o $(@F) $^
@@ -3433,6 +3517,18 @@ scnrm2.$(SUFFIX) : nrm2.c
 	$(CC) $(CFLAGS) -c -DCOMPLEX -UDOUBLE -o $(@F) $^
 
 dznrm2.$(SUFFIX) : nrm2.c
+	$(CC) $(CFLAGS) -c -DCOMPLEX -DDOUBLE -o $(@F) $^
+
+somatcopy.$(SUFFIX) : omatcopy.c
+	$(CC) $(CFLAGS) -c -UCOMPLEX -UDOUBLE -o $(@F) $^
+
+domatcopy.$(SUFFIX) : omatcopy.c
+	$(CC) $(CFLAGS) -c -UCOMPLEX -DDOUBLE -o $(@F) $^
+
+comatcopy.$(SUFFIX) : omatcopy.c
+	$(CC) $(CFLAGS) -c -DCOMPLEX -UDOUBLE -o $(@F) $^
+
+zomatcopy.$(SUFFIX) : omatcopy.c
 	$(CC) $(CFLAGS) -c -DCOMPLEX -DDOUBLE -o $(@F) $^
 
 

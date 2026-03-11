@@ -268,9 +268,39 @@ SMALL_MATRIX_OPT = 1
 else ifeq ($(ARCH), power)
 SMALL_MATRIX_OPT = 1
 BUILD_BFLOAT16 = 1
+else ifeq ($(ARCH), arm64)
+SMALL_MATRIX_OPT = 1
+BUILD_BFLOAT16 = 1
 endif
+ifeq ($(ARCH), loongarch64)
+SMALL_MATRIX_OPT = 1
+endif
+ifeq ($(ARCH), arm64)
+GEMM_GEMV_FORWARD = 1
+SBGEMM_GEMV_FORWARD = 1
+BGEMM_GEMV_FORWARD = 1
+endif
+ifeq ($(ARCH), riscv)
+GEMM_GEMV_FORWARD = 1
+endif
+ifeq ($(ARCH), power)
+GEMM_GEMV_FORWARD = 1
+SBGEMM_GEMV_FORWARD = 1
+endif
+
 ifeq ($(SMALL_MATRIX_OPT), 1)
 CCOMMON_OPT += -DSMALL_MATRIX_OPT
+endif
+ifneq ($(ONLY_CBLAS), 1)
+ifeq ($(GEMM_GEMV_FORWARD), 1)
+CCOMMON_OPT += -DGEMM_GEMV_FORWARD
+endif
+ifeq ($(SBGEMM_GEMV_FORWARD), 1)
+CCOMMON_OPT += -DSBGEMM_GEMV_FORWARD
+endif
+ifeq ($(BGEMM_GEMV_FORWARD), 1)
+CCOMMON_OPT += -DBGEMM_GEMV_FORWARD
+endif
 endif
 
 # This operation is expensive, so execution should be once.
@@ -301,6 +331,7 @@ HAVE_SSE5=
 HAVE_AVX=
 HAVE_AVX2=
 HAVE_FMA3=
+HAVE_SME=
 include $(TOPDIR)/Makefile_kernel.conf
 endif
 
@@ -365,8 +396,11 @@ GCCVERSIONGT5 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \> 5)
 GCCVERSIONGTEQ7 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 7)
 GCCVERSIONGTEQ8 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 8)
 GCCVERSIONGTEQ9 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 9)
-GCCVERSIONGTEQ11 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 11)
 GCCVERSIONGTEQ10 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 10)
+GCCVERSIONGTEQ11 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 11)
+GCCVERSIONGTEQ12 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 12)
+GCCVERSIONGTEQ13 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 13)
+GCCVERSIONGTEQ14 := $(shell expr `$(CC) -dumpversion | cut -f1 -d.` \>= 14)
 # Note that the behavior of -dumpversion is compile-time-configurable for
 # gcc-7.x and newer. Use -dumpfullversion there
 ifeq ($(GCCVERSIONGTEQ7),1)
@@ -393,9 +427,8 @@ ifeq ($(OSNAME), Darwin)
 ifndef MACOSX_DEPLOYMENT_TARGET
 ifeq ($(ARCH), arm64)
 export MACOSX_DEPLOYMENT_TARGET=11.0
-ifeq ($(C_COMPILER), GCC)
 export NO_SVE = 1
-endif
+# export NO_SME = 1
 else
 export MACOSX_DEPLOYMENT_TARGET=10.8
 endif
@@ -409,6 +442,9 @@ ifeq (x$(XCVER), x 15)
 CCOMMON_OPT += -Wl,-ld_classic
 FCOMMON_OPT += -Wl,-ld_classic
 endif
+ifeq ($(shell [ $(XCVER) -ge 16 ] && echo yes),yes)
+override CEXTRALIB := $(filter-out(-lto_library, $(CEXTRALIB))) 
+endif
 endif
 
 ifneq (,$(findstring $(OSNAME), FreeBSD OpenBSD DragonFly))
@@ -421,7 +457,7 @@ endif
 
 ifeq ($(OSNAME), Linux)
 EXTRALIB	+= -lm
-NO_EXPRECISION = 1
+#NO_EXPRECISION = 1
 endif
 
 ifeq ($(OSNAME), Android)
@@ -547,7 +583,7 @@ NO_BINARY_MODE	= 1
 endif
 
 ifeq ($(CORE), generic)
-NO_EXPRECISION = 1
+#NO_EXPRECISION = 1
 endif
 
 ifndef NO_EXPRECISION
@@ -570,7 +606,7 @@ endif
 ifeq ($(ARCH), x86_64)
 
 ifeq ($(CORE), generic)
-NO_EXPRECISION = 1
+#NO_EXPRECISION = 1
 endif
 
 ifndef NO_EXPRECISION
@@ -682,6 +718,15 @@ ifneq ($(NO_SVE), 1)
 DYNAMIC_CORE += NEOVERSEV1
 DYNAMIC_CORE += NEOVERSEN2
 DYNAMIC_CORE += ARMV8SVE
+DYNAMIC_CORE += A64FX
+endif
+ifneq ($(NO_SME), 1)
+DYNAMIC_CORE += ARMV9SME
+ifeq ($(OSNAME), Darwin)
+ifneq ($(C_COMPILER), GCC)
+DYNAMIC_CORE += VORTEXM4
+endif
+endif
 endif
 DYNAMIC_CORE += THUNDERX
 DYNAMIC_CORE += THUNDERX2T99
@@ -705,7 +750,18 @@ endif
 endif
 
 ifeq ($(ARCH), loongarch64)
-DYNAMIC_CORE = LOONGSON3R5 LOONGSON2K1000 LOONGSONGENERIC
+DYNAMIC_CORE = LA64_GENERIC LA264 LA464
+endif
+
+ifeq ($(ARCH), riscv64)
+DYNAMIC_CORE = RISCV64_GENERIC
+DYNAMIC_CORE += RISCV64_ZVL128B
+DYNAMIC_CORE += RISCV64_ZVL256B
+ifdef DYNAMIC_LIST
+override DYNAMIC_CORE = RISCV64_GENERIC $(DYNAMIC_LIST)
+XCCOMMON_OPT = -DDYNAMIC_LIST -DDYN_RISCV64_GENERIC
+XCCOMMON_OPT += $(foreach dcore,$(DYNAMIC_LIST),-DDYN_$(dcore))
+endif
 endif
 
 ifeq ($(ARCH), zarch)
@@ -791,8 +847,8 @@ BINARY_DEFINED	= 1
 
 ifeq ($(F_COMPILER), GFORTRAN)
 ifeq ($(C_COMPILER), GCC)
-# EXPRECISION	= 1
-# CCOMMON_OPT	+= -DEXPRECISION
+EXPRECISION	= 1
+CCOMMON_OPT	+= -DEXPRECISION
 endif
 endif
 endif
@@ -810,8 +866,12 @@ ifeq ($(ARCH), arm)
 NO_BINARY_MODE  = 1
 BINARY_DEFINED  = 1
 
+ifneq ($(EMBEDDED), 1)
 CCOMMON_OPT += -marm
 FCOMMON_OPT += -marm
+else
+CCOMMON_OPT += -DOS_EMBEDDED -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16
+endif
 
 # If softfp abi is mentioned on the command line, force it.
 ifeq ($(ARM_SOFTFP_ABI), 1)
@@ -833,7 +893,7 @@ NO_BINARY_MODE  = 1
 BINARY_DEFINED  = 1
 ifdef INTERFACE64
 ifneq ($(INTERFACE64), 0)
-ifeq ($(F_COMPILER), GFORTRAN)
+ifeq ($(F_COMPILER), $(filter $(F_COMPILER),GFORTRAN FLANGNEW))
 FCOMMON_OPT +=  -fdefault-integer-8
 endif
 ifeq ($(F_COMPILER), FLANG)
@@ -848,7 +908,7 @@ NO_BINARY_MODE  = 1
 BINARY_DEFINED  = 1
 ifdef INTERFACE64
 ifneq ($(INTERFACE64), 0)
-ifeq ($(F_COMPILER), GFORTRAN)
+ifeq ($(F_COMPILER), $(filter $(F_COMPILER),GFORTRAN FLANGNEW))
 FCOMMON_OPT +=  -fdefault-integer-8
 endif
 ifeq ($(F_COMPILER), FLANG)
@@ -863,7 +923,7 @@ NO_BINARY_MODE  = 1
 BINARY_DEFINED  = 1
 ifdef INTERFACE64
 ifneq ($(INTERFACE64), 0)
-ifeq ($(F_COMPILER), GFORTRAN)
+ifeq ($(F_COMPILER), $(filter $(F_COMPILER),GFORTRAN FLANGNEW))
 FCOMMON_OPT +=  -fdefault-integer-8
 endif
 ifeq ($(F_COMPILER), FLANG)
@@ -954,11 +1014,17 @@ endif
 
 ifeq ($(ARCH), loongarch64)
 LA64_ABI=$(shell $(CC) -mabi=lp64d -c $(TOPDIR)/cpuid_loongarch64.c -o /dev/null > /dev/null 2> /dev/null && echo lp64d)
+LA64_ARCH=$(shell $(CC) -march=loongarch64 -c $(TOPDIR)/cpuid_loongarch64.c -o /dev/null > /dev/null 2> /dev/null && echo loongarch64)
 ifneq ($(LA64_ABI), lp64d)
 LA64_ABI=lp64
 endif
+ifneq ($(LA64_ARCH), loongarch64)
+CCOMMON_OPT += -mabi=$(LA64_ABI)
+FCOMMON_OPT += -mabi=$(LA64_ABI)
+else
 CCOMMON_OPT += -march=loongarch64 -mabi=$(LA64_ABI)
 FCOMMON_OPT += -march=loongarch64 -mabi=$(LA64_ABI)
+endif
 endif
 
 endif
@@ -1134,6 +1200,13 @@ endif
 else ifeq ($(ARCH), $(filter $(ARCH),mips))
 FCOMMON_OPT += -mabi=32
 endif
+ifeq ($(ARCH), $(filter $(ARCH),loongarch64))
+ifdef INTERFACE64
+ifneq ($(INTERFACE64), 0)
+FCOMMON_OPT +=  -fdefault-integer-8
+endif
+endif
+endif
 else
 ifdef BINARY64
 ifneq ($(OSNAME), AIX)
@@ -1181,7 +1254,7 @@ ifeq ($(F_COMPILER), IBM)
 CCOMMON_OPT += -DF_INTERFACE_IBM
 FEXTRALIB += -lxlf90
 ifeq ($(C_COMPILER), $(filter $(C_COMPILER),GCC CLANG))
-FCOMMON_OPT += -qextname
+FCOMMON_OPT += -qextname -qzerosize
 endif
 # FCOMMON_OPT	+= -qarch=440
 ifdef BINARY64
@@ -1193,9 +1266,6 @@ endif
 endif
 else
 FCOMMON_OPT += -q32
-endif
-ifeq ($(USE_OPENMP), 1)
-FCOMMON_OPT += -openmp
 endif
 endif
 
@@ -1428,6 +1498,10 @@ ifeq ($(NO_SVE), 1)
 CCOMMON_OPT     += -DNO_SVE
 endif
 
+ifeq ($(NO_SME), 1)
+CCOMMON_OPT     += -DNO_SME
+endif
+
 ifdef SMP
 CCOMMON_OPT	+= -DSMP_SERVER
 
@@ -1489,6 +1563,9 @@ endif
 ifeq ($(BUILD_BFLOAT16), 1)
 CCOMMON_OPT += -DBUILD_BFLOAT16
 endif
+ifeq ($(BUILD_HFLOAT16), 1)
+CCOMMON_OPT += -DBUILD_HFLOAT16
+endif
 ifeq ($(BUILD_SINGLE), 1)
 CCOMMON_OPT += -DBUILD_SINGLE=1
 endif
@@ -1516,16 +1593,28 @@ ifndef LIBSONAMEBASE
 LIBSONAMEBASE = openblas
 endif
 
+ifndef LIBNAMEPREFIX
+LIBNAMEPREFIX =
+endif
+
+SYMPREFIX=$(SYMBOLPREFIX)
+ifeq ($(SYMBOLPREFIX),$(LIBNAMEPREFIX))
+SYMPREFIX=
+endif
+SYMSUFFIX=$(SYMBOLSUFFIX)
+ifeq ($(SYMBOLSUFFIX),$(LIBNAMESUFFIX))
+SYMSUFFIX=
+endif
 ifndef LIBNAMESUFFIX
-LIBNAMEBASE = $(SYMBOLPREFIX)$(LIBSONAMEBASE)$(SYMBOLSUFFIX)
+LIBNAMEBASE = $(SYMPREFIX)$(LIBSONAMEBASE)$(SYMSUFFIX)
 else
-LIBNAMEBASE = $(SYMBOLPREFIX)$(LIBSONAMEBASE)$(SYMBOLSUFFIX)_$(LIBNAMESUFFIX)
+LIBNAMEBASE = $(SYMPREFIX)$(LIBSONAMEBASE)$(SYMSUFFIX)$(LIBNAMESUFFIX)
 endif
 
 ifeq ($(OSNAME), CYGWIN_NT)
-LIBPREFIX = cyg$(LIBNAMEBASE)
+LIBPREFIX = cyg$(LIBNAMEPREFIX)$(LIBNAMEBASE)
 else
-LIBPREFIX = lib$(LIBNAMEBASE)
+LIBPREFIX = lib$(LIBNAMEPREFIX)$(LIBNAMEBASE)
 endif
 
 KERNELDIR	= $(TOPDIR)/kernel/$(ARCH)
@@ -1557,6 +1646,13 @@ NO_AFFINITY = 1
 endif
 endif
 
+ifeq ($(ARCH), POWER)
+ifeq ($(DEBUG), 1)
+CCOMMON_OPT := $(filter-out -O%, $(CCOMMON_OPT)) -O0
+FCOMMON_OPT := $(filter-out -O%, $(FCOMMON_OPT)) -O0
+endif
+endif
+
 ifdef NO_AFFINITY
 ifeq ($(NO_AFFINITY), 0)
 override undefine NO_AFFINITY
@@ -1569,12 +1665,22 @@ ifdef FUNCTION_PROFILE
 CCOMMON_OPT	+= -DFUNCTION_PROFILE
 endif
 
+ifdef SHMEM_ALLOCATION
+ifneq ($(SHMEM_ALLOCATION), 0)
+CCOMMON_OPT	+= -DALLOC_SHM
+endif
+endif
+
 ifdef HUGETLB_ALLOCATION
+ifneq ($(HUGETLB_ALLOCATION), 0)
 CCOMMON_OPT	+= -DALLOC_HUGETLB
+endif
 endif
 
 ifdef HUGETLBFILE_ALLOCATION
+ifneq ($(HUGETLBFILE_ALLOCATION), 0)
 CCOMMON_OPT	+= -DALLOC_HUGETLBFILE -DHUGETLB_FILE_NAME=$(HUGETLBFILE_ALLOCATION)
+endif
 endif
 
 ifdef STATIC_ALLOCATION
@@ -1657,6 +1763,10 @@ ifeq ($(F_COMPILER),CRAY)
 LAPACK_FFLAGS := $(filter-out -msse3 -mssse3 -msse4.1 -mavx -mavx2 -mskylake-avx512 ,$(FFLAGS))
 override FFLAGS := $(filter-out -msse3 -mssse3 -msse4.1 -mavx -mavx2 -mskylake-avx512 ,$(FFLAGS))
 endif
+ifeq ($(F_COMPILER),FLANGNEW)
+LAPACK_FFLAGS := $(filter-out -m32 -m64 -msse3 -mssse3 -msse4.1 -mavx -mavx2 -mskylake-avx512 -mtune=% -mabi=% ,$(FFLAGS))
+override FFLAGS := $(filter-out -m32 -m64 -msse3 -mssse3 -msse4.1 -mavx -mavx2 -mskylake-avx512 -mtune=% -mabi=% ,$(FFLAGS))
+endif
 
 LAPACK_CFLAGS = $(CFLAGS)
 LAPACK_CFLAGS += -DHAVE_LAPACK_CONFIG_H
@@ -1704,14 +1814,14 @@ LIBNAME_P	= $(LIBPREFIX)p$(REVISION)_p.$(LIBSUFFIX)
 endif
 endif
 
+ifeq ($(FIXED_LIBNAME),1)
+	LIBNAME = lib$(LIBNAMEPREFIX)$(LIBSONAMEBASE)$(LIBNAMESUFFIX).$(LIBSUFFIX)
+	LIBNAME_P = lib$(LIBNAMEPREFIX)$(LISOBNAMEBASE)$(LIBNAMESUFFIX)_p.$(LIBSUFFIX)
+endif
 
 LIBDLLNAME   = $(LIBPREFIX).dll
 IMPLIBNAME   = lib$(LIBNAMEBASE).dll.a
-ifneq ($(OSNAME), AIX)
 LIBSONAME    = $(LIBNAME:.$(LIBSUFFIX)=.so)
-else
-LIBSONAME    = $(LIBNAME:.$(LIBSUFFIX)=.a)
-endif
 LIBDYNNAME   = $(LIBNAME:.$(LIBSUFFIX)=.dylib)
 LIBDEFNAME   = $(LIBNAME:.$(LIBSUFFIX)=.def)
 LIBEXPNAME   = $(LIBNAME:.$(LIBSUFFIX)=.exp)
@@ -1792,17 +1902,23 @@ ifndef NO_MSA
   export HAVE_MSA
   export MSA_FLAGS
 endif
+export HAVE_SME
 export KERNELDIR
 export FUNCTION_PROFILE
 export TARGET_CORE
 export NO_AVX512
 export NO_AVX2
 export BUILD_BFLOAT16
+export BUILD_HFLOAT16
 export NO_LSX
 export NO_LASX
 
+export BGEMM_UNROLL_M
+export BGEMM_UNROLL_N
 export SBGEMM_UNROLL_M
 export SBGEMM_UNROLL_N
+export SHGEMM_UNROLL_M
+export SHGEMM_UNROLL_N
 export SGEMM_UNROLL_M
 export SGEMM_UNROLL_N
 export DGEMM_UNROLL_M

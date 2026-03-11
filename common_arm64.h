@@ -44,9 +44,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define RMB  __asm__ __volatile__ ("dmb  ishld" : : : "memory")
 #endif
 
-#define INLINE inline
-
-#if defined( F_INTERFACE_FLANG) || defined(F_INTERFACE_PGI)
+#if defined( F_INTERFACE_FLANG) || (defined(F_INTERFACE_PGI) && (defined(__NVCOMPILER) && (__NVCOMPILER_MAJOR__ < 23 || (__NVCOMPILER_MAJOR__ == 23 && __NVCOMPILER_MINOR__ < 9))))
 #define RETURN_BY_STACK
 #else
 #define RETURN_BY_COMPLEX
@@ -54,6 +52,21 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef ASSEMBLER
 
+
+#ifndef NO_AFFINITY
+static __inline int WhereAmI(void){
+  uint64_t ret;
+  __asm__ volatile (
+       "         mrs x0, mpidr_el1 \n"
+       "         and x0, x0, 0xff  \n"
+                 :"=r" (ret)
+                 :: "memory"
+               );
+  ret +=1;
+  if ((int)ret <0) ret = 0;
+  return (int)ret;
+}
+#endif
 
 static __inline void blas_lock(volatile BLASULONG *address){
 
@@ -101,9 +114,9 @@ static __inline BLASULONG rpcc(void){
   #else
   BLASULONG ret = 0;
   blasint shift;
- 
-  __asm__ __volatile__ ("isb; mrs %0,cntvct_el0":"=r"(ret));
-  __asm__ __volatile__ ("mrs %0,cntfrq_el0; clz %w0, %w0":"=&r"(shift));
+
+  __asm__ __volatile__ ("isb\n\tmrs %0,cntvct_el0":"=r"(ret));
+  __asm__ __volatile__ ("mrs %x0,cntfrq_el0\n\tclz %w0, %w0":"=&r"(shift));
 
   return ret << shift;
   #endif
@@ -162,7 +175,7 @@ REALNAME:
 #define HUGE_PAGESIZE   ( 4 << 20)
 
 #ifndef BUFFERSIZE
-#if defined(NEOVERSEN1) || defined(NEOVERSEN2) || defined(NEOVERSEV1) || defined(A64FX) || defined(ARMV8SVE)
+#if defined(NEOVERSEN1) || defined(NEOVERSEN2) || defined(NEOVERSEV1) || defined(A64FX) || defined(ARMV8SVE) || defined(ARMV9SME)
 #define BUFFER_SIZE     (32 << 22)
 #else
 #define BUFFER_SIZE     (32 << 20)

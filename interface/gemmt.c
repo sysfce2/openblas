@@ -38,6 +38,17 @@
 
 #ifndef COMPLEX
 #define SMP_THRESHOLD_MIN 65536.0
+#ifdef RNAME
+#ifdef XDOUBLE
+#define ERROR_NAME "QGEMMTR"
+#elif defined(DOUBLE)
+#define ERROR_NAME "DGEMMTR"
+#elif defined(BFLOAT16)
+#define ERROR_NAME "SBGEMMTR"
+#else
+#define ERROR_NAME "SGEMMTR"
+#endif
+#else
 #ifdef XDOUBLE
 #define ERROR_NAME "QGEMMT "
 #elif defined(DOUBLE)
@@ -47,14 +58,25 @@
 #else
 #define ERROR_NAME "SGEMMT "
 #endif
+#endif
 #else
 #define SMP_THRESHOLD_MIN 8192.0
+#ifdef RNAME
+#ifdef XDOUBLE
+#define ERROR_NAME "XGEMMTR"
+#elif defined(DOUBLE)
+#define ERROR_NAME "ZGEMMTR"
+#else
+#define ERROR_NAME "CGEMMTR"
+#endif
+#else
 #ifdef XDOUBLE
 #define ERROR_NAME "XGEMMT "
 #elif defined(DOUBLE)
 #define ERROR_NAME "ZGEMMT "
 #else
 #define ERROR_NAME "CGEMMT "
+#endif
 #endif
 #endif
 
@@ -319,8 +341,8 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 		lda = LDB;
 		ldb = LDA;
 
-		if (Uplo == CblasUpper) uplo = 0;
-		if (Uplo == CblasLower) uplo = 1;
+		if (Uplo == CblasUpper) uplo = 1;
+		if (Uplo == CblasLower) uplo = 0;
 
 		if (TransB == CblasNoTrans)
 			transa = 0;
@@ -522,7 +544,7 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 
 			IDEBUG_START;
 
-			buffer_size = j + k + 128 / sizeof(FLOAT);
+			buffer_size = 2 * (j + k) + 128 / sizeof(FLOAT);
 #ifdef WINDOWS_ABI
 			buffer_size += 160 / sizeof(FLOAT);
 #endif
@@ -611,7 +633,7 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 #endif
 			IDEBUG_START;
 
-			buffer_size = j + k + 128 / sizeof(FLOAT);
+			buffer_size = 2 * (j + k) + 128 / sizeof(FLOAT);
 #ifdef WINDOWS_ABI
 			buffer_size += 160 / sizeof(FLOAT);
 #endif
@@ -665,6 +687,20 @@ void CNAME(enum CBLAS_ORDER order, enum CBLAS_UPLO Uplo,
 	}
 
 	IDEBUG_END;
+
+/* transform B back if necessary */
+#if defined(COMPLEX)
+	if (transb > 1){
+#ifndef CBLAS
+		IMATCOPY_K_CNC(nrowb, ncolb, (FLOAT)(1.0), (FLOAT)(0.0), b, ldb);
+#else
+		if (order == CblasColMajor)
+			IMATCOPY_K_CNC(nrowb, ncolb, (FLOAT)(1.0), (FLOAT)(0.0), b, ldb);
+		if (order == CblasRowMajor)
+			IMATCOPY_K_RNC(nrowb, ncolb, (FLOAT)(1.0), (FLOAT)(0.0), b, ldb);
+#endif
+	}
+#endif
 
 	return;
 }

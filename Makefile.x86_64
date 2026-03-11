@@ -8,6 +8,11 @@ endif
 endif
 endif
 
+ifeq ($(C_COMPILER), CLANG)
+ifeq ($(findstring icx,$(CC)),icx)
+CCOMMON_OPT += -fp-model=consistent
+endif
+endif
 
 ifneq ($(DYNAMIC_ARCH),1)
 ADD_CPUFLAGS = 1
@@ -56,6 +61,9 @@ endif
 ifeq ($(CORE), SKYLAKEX)
 ifndef NO_AVX512
 CCOMMON_OPT += -march=skylake-avx512
+ifeq ($(C_COMPILER), CLANG)
+CCOMMON_OPT += -mllvm -exhaustive-register-search
+endif
 ifneq ($(F_COMPILER), NAG)
 FCOMMON_OPT += -march=skylake-avx512
 endif
@@ -88,6 +96,7 @@ ifeq ($(C_COMPILER), GCC)
   endif
  endif
 else ifeq ($(C_COMPILER), CLANG)
+ CCOMMON_OPT += -mllvm -exhaustive-register-search
  # cooperlake support was added in clang 9
  ifeq ($(CLANGVERSIONGTEQ9), 1)
   CCOMMON_OPT += -march=cooperlake
@@ -130,6 +139,7 @@ ifeq ($(C_COMPILER), GCC)
   endif
  endif
 else ifeq ($(C_COMPILER), CLANG)
+  CCOMMON_OPT += -mllvm -exhaustive-register-search
  # sapphire rapids support was added in clang 12
  ifeq ($(CLANGVERSIONGTEQ12), 1)
   CCOMMON_OPT += -march=sapphirerapids

@@ -229,7 +229,7 @@ static double nrm2_compute(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 	"	cmp	"N", xzr			\n"
 	"	ble	9f //nrm2_kernel_L999		\n"
 	"	cmp	"INC_X", xzr			\n"
-	"	ble	9f //nrm2_kernel_L999		\n"
+	"	beq	9f //nrm2_kernel_L999		\n"
 	"	cmp	"INC_X", #1			\n"
 	"	bne	5f //nrm2_kernel_S_BEGIN	\n"
 
@@ -238,7 +238,10 @@ static double nrm2_compute(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 	"	cmp	"J", xzr			\n"
 	"	beq	5f //nrm2_kernel_S_BEGIN	\n"
 
+/* https://github.com/llvm/llvm-project/issues/149547 */
+#if !(defined(__clang__) && defined(OS_WINDOWS))
 	"	.align 5				\n"
+#endif
 	"2: //nrm2_kernel_F:				\n"
 	"	"KERNEL_F"				\n"
 	"	subs	"J", "J", #1			\n"
@@ -315,7 +318,7 @@ FLOAT CNAME(BLASLONG n, FLOAT *x, BLASLONG inc_x)
 	FLOAT nrm2 = 0.0;
 	double nrm2_double = 0.0;
 
-	if (n <= 0 || inc_x <= 0) return 0.0;
+	if (n <= 0 || inc_x == 0) return 0.0;
 
 #if defined(SMP)
 	if (n <= 10000)
