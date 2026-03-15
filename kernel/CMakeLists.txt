@@ -48,7 +48,7 @@ function (build_core TARGET_CORE KDIR TSUFFIX KERNEL_DEFINITIONS)
     endif ()
 
     if (${ADD_COMMONOBJS})
-        if (X86)
+	    if (X86 AND NOT EMSCRIPTEN)
         if (NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
           GenerateNamedObjects("${KERNELDIR}/cpuid.S" "" "" false "" "" true)
         else()
