@@ -12,7 +12,7 @@
 static void drot_kernel(BLASLONG n, FLOAT *x, FLOAT *y, FLOAT c, FLOAT s)
 {
     BLASLONG i = 0;
-#if V_SIMD_F64 && (V_SIMD > 256 || defined(ARCH_WASM))
+#if V_SIMD_F64 && V_SIMD > 256
     const int vstep = v_nlanes_f64;
     const int unrollx4 = n & (-vstep * 4);
     const int unrollx = n & -vstep;

@@ -34,6 +34,23 @@ BLAS_FINLINE v_f64 v_mulsub_f64(v_f64 a, v_f64 b, v_f64 c)
 { return v_sub_f64(v_mul_f64(a, b), c); }
 
 /***************************
+ * reduction
+ ***************************/
+BLAS_FINLINE float v_sum_f32(v_f32 a)
+{
+    return wasm_f32x4_extract_lane(a, 0)
+         + wasm_f32x4_extract_lane(a, 1)
+         + wasm_f32x4_extract_lane(a, 2)
+         + wasm_f32x4_extract_lane(a, 3);
+}
+
+BLAS_FINLINE double v_sum_f64(v_f64 a)
+{
+    return wasm_f64x2_extract_lane(a, 0)
+         + wasm_f64x2_extract_lane(a, 1);
+}
+
+/***************************
  * memory
  ***************************/
 #define v_loadu_f32(a) wasm_v128_load((const float*)a)
