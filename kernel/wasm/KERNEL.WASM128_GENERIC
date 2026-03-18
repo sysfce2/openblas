@@ -40,7 +40,7 @@ DSUMKERNEL  = ../arm/sum.c
 CSUMKERNEL  = ../arm/zsum.c
 ZSUMKERNEL  = ../arm/zsum.c
 
-SAXPYKERNEL  = ../riscv64/axpy.c
+SAXPYKERNEL  = ../x86_64/saxpy.c
 DAXPYKERNEL  = ../x86_64/daxpy.c
 CAXPYKERNEL  = ../riscv64/zaxpy.c
 ZAXPYKERNEL  = ../riscv64/zaxpy.c
