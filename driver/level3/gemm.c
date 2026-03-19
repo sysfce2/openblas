@@ -63,6 +63,10 @@
 #define DIVIDE_RATE GEMM_DIVIDE_RATE
 #endif
 
+#ifdef DYNAMIC_ARCH
+#define GEMM_DIVIDE_LIMIT gotoblas->divide_limit
+#endif
+
 #ifdef GEMM_DIVIDE_LIMIT
 #define DIVIDE_LIMIT GEMM_DIVIDE_LIMIT
 #endif
