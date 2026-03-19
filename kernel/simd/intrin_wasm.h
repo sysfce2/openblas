@@ -33,6 +33,15 @@ BLAS_FINLINE v_f32 v_mulsub_f32(v_f32 a, v_f32 b, v_f32 c)
 BLAS_FINLINE v_f64 v_mulsub_f64(v_f64 a, v_f64 b, v_f64 c)
 { return v_sub_f64(v_mul_f64(a, b), c); }
 
+BLAS_FINLINE v_f64 v_cvt_f32_f64_lo(v_f32 a)
+{ return wasm_f64x2_promote_low_f32x4(a); }
+
+BLAS_FINLINE v_f64 v_cvt_f32_f64_hi(v_f32 a)
+{
+    v128_t hi = wasm_i32x4_shuffle(a, a, 2, 3, 0, 1);
+    return wasm_f64x2_promote_low_f32x4(hi);
+}
+
 /***************************
  * reduction
  ***************************/
