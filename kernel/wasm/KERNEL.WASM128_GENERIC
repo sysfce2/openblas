@@ -56,7 +56,7 @@ CCOPYKERNEL  = ../riscv64/zcopy.c
 ZCOPYKERNEL  = ../riscv64/zcopy.c
 
 SDOTKERNEL   = ../generic/dot.c
-DDOTKERNEL   = ../riscv64/dot.c
+DDOTKERNEL   = ../generic/dot.c
 CDOTKERNEL   = ../riscv64/zdot.c
 ZDOTKERNEL   = ../riscv64/zdot.c
 DSDOTKERNEL  = ../generic/dot.c
