@@ -489,7 +489,7 @@ int get_cacheinfo(int type, cache_info_t *cacheinfo)
     info[12] = BITMASK(edx, 8, 0xff);
     info[13] = BITMASK(edx, 16, 0xff);
     info[14] = BITMASK(edx, 24, 0xff);
-fprintf(stderr,"numcalls needed to retrieve all cache data %d\n",numcalls);
+
     for (i = 0; i < 15; i++) {
       switch (info[i]) {
         /* This table is from http://www.sandpile.org/x86/cpuid.htm */
@@ -1588,6 +1588,8 @@ int get_cpuname(void)
           if (support_avx2()) return CPUTYPE_HASWELL;
           if (support_avx()) return CPUTYPE_SANDYBRIDGE;
           else return CPUTYPE_NEHALEM;
+	case 12: // Jasper Lake Celeron N5105
+	  return CPUTYPE_NEHALEM;
         case 13: // Ice Lake NNPI
           if (support_avx512()) return CPUTYPE_SKYLAKEX;
           if (support_avx2()) return CPUTYPE_HASWELL;
@@ -2302,6 +2304,8 @@ int get_coretype(void)
           if (support_avx()) return CORE_SANDYBRIDGE;
           else return CORE_NEHALEM;
         }
+	if (model == 12) // Jasper Lake
+	  return CORE_NEHALEM;
         if (model == 13) { // Ice Lake NNPI
           if (support_avx512()) return CORE_SKYLAKEX;
           if (support_avx2()) return CORE_HASWELL;
@@ -2400,6 +2404,7 @@ int get_coretype(void)
       if (support_avx512()) return CORE_SKYLAKEX;
       if (support_avx2()) return CORE_HASWELL;
       if (support_avx()) return CORE_SANDYBRIDGE;
+      return CORE_NEHALEM;
     }
   }
 
