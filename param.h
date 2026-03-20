@@ -630,10 +630,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            4
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #ifdef ARCH_X86
@@ -1539,10 +1539,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            4
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #ifdef ARCH_X86
@@ -1665,10 +1665,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -1786,10 +1786,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -1919,10 +1919,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -2577,7 +2577,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
 
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      16
+#define GEMM_PREFERRED_SIZE      16
 
 #define SGEMM_DEFAULT_UNROLL_M 16
 #define SGEMM_DEFAULT_UNROLL_N 8
@@ -2616,7 +2616,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
 
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      16
+#define GEMM_PREFERRED_SIZE      16
 
 #define SGEMM_DEFAULT_UNROLL_M 16
 #define SGEMM_DEFAULT_UNROLL_N 8
@@ -3611,10 +3611,10 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #undef BGEMM_ALIGN_K
@@ -3749,9 +3749,9 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 #define GEMM_DIVIDE_RATE  1
 
 #if defined(XDOUBLE) || defined(DOUBLE)
-#define GEMM_PREFERED_SIZE  8
+#define GEMM_PREFERRED_SIZE  8
 #else
-#define GEMM_PREFERED_SIZE 16
+#define GEMM_PREFERRED_SIZE 16
 #endif
 
 /* When all BLAS3 routines are implemeted with SVE, SGEMM_DEFAULT_UNROLL_M should be "sve_vl".
@@ -4256,6 +4256,18 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 
 #ifndef SWITCH_RATIO
 #define SWITCH_RATIO 2
+#endif
+
+#ifndef GEMM_DIVIDE_RATE
+#define GEMM_DIVIDE_RATE 2
+#endif
+
+#ifndef GEMM_DIVIDE_LIMIT
+#define GEMM_DIVIDE_LIMIT 0
+#endif
+
+#ifndef GEMM_PREFERRED_SIZE
+#define GEMM_PREFERRED_SIZE 1
 #endif
 
 #ifndef QGEMM_DEFAULT_UNROLL_M
