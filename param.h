@@ -3662,8 +3662,6 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 
 #elif defined(NEOVERSEN2) || defined(NEOVERSEV2)
 
-#define GEMM_DIVIDE_LIMIT       3
-
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            8
 #else
