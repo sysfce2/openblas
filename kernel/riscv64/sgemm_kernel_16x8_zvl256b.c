@@ -1312,6 +1312,8 @@ static FORCEINLINE FLOAT* M_TAIL_ONE(BLASLONG K, const BLASLONG M, const BLASLON
     return B;
 }
 
+#define GCC_COMPILER (defined(__GNUC__) && !defined(__clang__))
+
 static FORCEINLINE FLOAT* M_TAIL(BLASLONG K, const BLASLONG M, const BLASLONG N, const bool S, FLOAT alpha, FLOAT* A0, FLOAT* B, FLOAT* C, BLASLONG ldc)
 {
     FLOAT *A1, *A2, *A3;
@@ -1321,7 +1323,9 @@ static FORCEINLINE FLOAT* M_TAIL(BLASLONG K, const BLASLONG M, const BLASLONG N,
     } else
 #endif
     {
+#ifdef GCC_COMPILER
         A1 = A0;
+#endif
     }
 #ifndef GEMM_NEW_PACKING
     if (M & 2) {
@@ -1329,7 +1333,9 @@ static FORCEINLINE FLOAT* M_TAIL(BLASLONG K, const BLASLONG M, const BLASLONG N,
     } else
 #endif
     {
+#ifdef GCC_COMPILER
         A2 = A0;
+#endif
     }
 #ifndef GEMM_NEW_PACKING
     if (M & 1) {
@@ -1337,7 +1343,9 @@ static FORCEINLINE FLOAT* M_TAIL(BLASLONG K, const BLASLONG M, const BLASLONG N,
     } else
 #endif
     {
+#ifdef GCC_COMPILER
         A3 = A0;
+#endif
     }
     if (M & 8) {
         if (M & 4) {
