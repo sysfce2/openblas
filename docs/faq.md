@@ -47,7 +47,8 @@ You can find the full list of modifications in Changelog.txt.
 The detailed explanation is probably in the original publication authored by Kazushige Goto - Goto, Kazushige; van de Geijn, Robert A; Anatomy of high-performance matrix multiplication. ACM Transactions on Mathematical Software (TOMS). Volume 34 Issue 3, May 2008
 While this article is paywalled and too old for preprints to be available on arxiv.org, more recent
 publications like https://arxiv.org/pdf/1609.00076 contain at least a brief description of the algorithm.
-In practice, the values are derived by experimentation to yield the block sizes that give the highest performance. A general rule of thumb for selecting a starting point seems to be that PxQ is about half the size of L2 cache.
+In practice, the values are derived by experimentation to yield the block sizes that give the highest performance. A general rule of thumb for selecting a starting point seems to be that PxQ is about half the size of L2 cache. R needs to be greater than the bigger of P and Q by
+at least 64, or bad things will happen with the work splitting in (at least) POTRF.
 
 ### <a name="reportbug"></a>How can I report a bug?
 
@@ -344,7 +345,12 @@ Multithreading support in OpenBLAS requires the use of internal buffers for shar
 If you get a message "error while loading shared libraries: libopenblas.so.0: ELF load command address/offset not properly aligned" when starting a program that is (dynamically) linked to OpenBLAS, this is very likely due to a bug in the GNU linker (ld) that is part of the
 GNU binutils package. This error was specifically observed on older versions of Ubuntu Linux updated with the (at the time) most recent binutils version 2.38, but an internet search turned up sporadic reports involving various other libraries dating back several years. A bugfix was created by the binutils developers and should be available in later versions of binutils.(See issue 3708 for details)
 
-#### <a name="OpenMP"></a>Using OpenBLAS with OpenMP
+### <a name="CallingConvention"></a>The tests work fine, but calling any complex function from my code produces wrong or no results
+
+This is almost certainly a problem with the calling convention used, in particular with the way the computed result is transported back to the caller. By default, OpenBLAS follows the F2C convention of returning the result on the stack rather than as the first argument to the function. So if your code has a prototype like "void cdotu ( complex *res, int n,...)" change it to "complex cdotu (int n,...)". Better yet,
+use the CBLAS interface rather than the Fortran one.
+
+### <a name="OpenMP"></a>Using OpenBLAS with OpenMP
 
 OpenMP provides its own locking mechanisms, so when your code makes BLAS/LAPACK calls from inside OpenMP parallel regions it is imperative
 that you use an OpenBLAS that is built with USE_OPENMP=1, as otherwise deadlocks might occur. Furthermore, OpenBLAS will automatically restrict itself to using only a single thread when called from an OpenMP parallel region. When it is certain that calls will only occur

@@ -1,5 +1,5 @@
 /*****************************************************************************
-Copyright (c) 2011-2023, 2025 The OpenBLAS Project
+Copyright (c) 2011-2023, 2025-2026 The OpenBLAS Project
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -630,10 +630,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            4
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #ifdef ARCH_X86
@@ -1539,10 +1539,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            4
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #ifdef ARCH_X86
@@ -1665,10 +1665,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -1780,16 +1780,16 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GEMM_DEFAULT_OFFSET_A     0
 #define GEMM_DEFAULT_OFFSET_B     0
-#define GEMM_DEFAULT_ALIGN 0x03fffUL
+#define GEMM_DEFAULT_ALIGN (BLASLONG)0x03fffUL
 
 #define SYMV_P  8
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -1913,16 +1913,16 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define GEMM_DEFAULT_OFFSET_A     0
 #define GEMM_DEFAULT_OFFSET_B     0
-#define GEMM_DEFAULT_ALIGN 0x03fffUL
+#define GEMM_DEFAULT_ALIGN (BLASLONG)0x03fffUL
 
 #define SYMV_P  8
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO           8
-#define GEMM_PREFERED_SIZE     8
+#define GEMM_PREFERRED_SIZE     8
 #else
 #define SWITCH_RATIO           16
-#define GEMM_PREFERED_SIZE     16
+#define GEMM_PREFERRED_SIZE     16
 #endif
 #define USE_SGEMM_KERNEL_DIRECT 1
 
@@ -2577,7 +2577,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
 
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      16
+#define GEMM_PREFERRED_SIZE      16
 
 #define SGEMM_DEFAULT_UNROLL_M 16
 #define SGEMM_DEFAULT_UNROLL_N 8
@@ -2616,7 +2616,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
 
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      16
+#define GEMM_PREFERRED_SIZE      16
 
 #define SGEMM_DEFAULT_UNROLL_M 16
 #define SGEMM_DEFAULT_UNROLL_N 8
@@ -3027,7 +3027,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SYMV_P  16
 #endif
 
-#ifdef RISCV64_GENERIC
+#if defined(RISCV64_GENERIC) || defined(WASM128_GENERIC)
 #define GEMM_DEFAULT_OFFSET_A 0
 #define GEMM_DEFAULT_OFFSET_B 0
 #define GEMM_DEFAULT_ALIGN (BLASLONG)0x03fffUL
@@ -3375,7 +3375,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(CORTEXA57) || defined(CORTEXX1) || \
     defined(CORTEXA72) || defined(CORTEXA73) || \
-    defined(FALKOR)    || defined(TSV110) || defined(EMAG8180) || defined(VORTEX) || defined(FT2000)
+    defined(FALKOR)    || defined(TSV110) || defined(EMAG8180) || defined(VORTEX) || defined(FT2000) || defined(VORTEXM4)
 
 #define SGEMM_DEFAULT_UNROLL_M  16
 #define SGEMM_DEFAULT_UNROLL_N  4
@@ -3392,7 +3392,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 /*FIXME: this should be using the cache size, but there is currently no easy way to
 query that on ARM. So if getarch counted more than 8 cores we simply assume the host
 is a big desktop or server with abundant cache rather than a phone or embedded device */ 
-#if NUM_CORES > 8 || defined(TSV110) || defined(EMAG8180) || defined(VORTEX)|| defined(CORTEXX1)
+#if NUM_CORES > 8 || defined(TSV110) || defined(EMAG8180) || defined(VORTEX)|| defined(CORTEXX1) || defined(VORTEXM4)
   #define SGEMM_DEFAULT_P 512
   #define DGEMM_DEFAULT_P 256
   #define CGEMM_DEFAULT_P 256
@@ -3611,10 +3611,10 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 
 #if defined(XDOUBLE) || defined(DOUBLE)
 #define SWITCH_RATIO            8
-#define GEMM_PREFERED_SIZE      4
+#define GEMM_PREFERRED_SIZE      4
 #else
 #define SWITCH_RATIO            16
-#define GEMM_PREFERED_SIZE      8
+#define GEMM_PREFERRED_SIZE      8
 #endif
 
 #undef BGEMM_ALIGN_K
@@ -3673,14 +3673,14 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 #undef BGEMM_DEFAULT_UNROLL_N
 #define BGEMM_ALIGN_K 4
 #define BGEMM_DEFAULT_UNROLL_M 8
-#define BGEMM_DEFAULT_UNROLL_N 4
+#define BGEMM_DEFAULT_UNROLL_N 8
 
 #undef SBGEMM_ALIGN_K
 #undef SBGEMM_DEFAULT_UNROLL_M
 #undef SBGEMM_DEFAULT_UNROLL_N
 #define SBGEMM_ALIGN_K 4
 #define SBGEMM_DEFAULT_UNROLL_M 8
-#define SBGEMM_DEFAULT_UNROLL_N 4
+#define SBGEMM_DEFAULT_UNROLL_N 8
 
 #define SGEMM_DEFAULT_UNROLL_M  16
 #define SGEMM_DEFAULT_UNROLL_N  4
@@ -3749,9 +3749,9 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 #define GEMM_DIVIDE_RATE  1
 
 #if defined(XDOUBLE) || defined(DOUBLE)
-#define GEMM_PREFERED_SIZE  8
+#define GEMM_PREFERRED_SIZE  8
 #else
-#define GEMM_PREFERED_SIZE 16
+#define GEMM_PREFERRED_SIZE 16
 #endif
 
 /* When all BLAS3 routines are implemeted with SVE, SGEMM_DEFAULT_UNROLL_M should be "sve_vl".
@@ -3778,18 +3778,18 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 #define ZGEMM_DEFAULT_UNROLL_N  4
 #define ZGEMM_DEFAULT_UNROLL_MN  16
 
-#define SGEMM_DEFAULT_P	128
-#define DGEMM_DEFAULT_P	160
+#define SGEMM_DEFAULT_P 128
+#define DGEMM_DEFAULT_P 128
 #define CGEMM_DEFAULT_P 128
 #define ZGEMM_DEFAULT_P 128
 
-#define SGEMM_DEFAULT_Q 352
-#define DGEMM_DEFAULT_Q 128
+#define SGEMM_DEFAULT_Q 896
+#define DGEMM_DEFAULT_Q 448
 #define CGEMM_DEFAULT_Q 224
 #define ZGEMM_DEFAULT_Q 112
 
-#define SGEMM_DEFAULT_R 4096
-#define DGEMM_DEFAULT_R 4096
+#define SGEMM_DEFAULT_R 3072
+#define DGEMM_DEFAULT_R 3072
 #define CGEMM_DEFAULT_R 4096
 #define ZGEMM_DEFAULT_R 4096
 
@@ -3864,11 +3864,12 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 
 #endif /* ARMv8 */
 
-#if defined(ARMV9SME) /* ARMv9 SME */
+#if defined(ARMV9SME) || (defined(VORTEXM4)&&defined(__clang__))  /* ARMv9 SME */
 #define USE_SGEMM_KERNEL_DIRECT 1
 #define USE_SSYMM_KERNEL_DIRECT 1
 #define USE_STRMM_KERNEL_DIRECT 1
 #define USE_SSYRK_KERNEL_DIRECT 1
+#define USE_SSYR2K_KERNEL_DIRECT 1
 #endif /* ARMv9 SME */
 
 #if defined(ARMV5)
@@ -4255,6 +4256,18 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 
 #ifndef SWITCH_RATIO
 #define SWITCH_RATIO 2
+#endif
+
+#ifndef GEMM_DIVIDE_RATE
+#define GEMM_DIVIDE_RATE 2
+#endif
+
+#ifndef GEMM_DIVIDE_LIMIT
+#define GEMM_DIVIDE_LIMIT 0
+#endif
+
+#ifndef GEMM_PREFERRED_SIZE
+#define GEMM_PREFERRED_SIZE 1
 #endif
 
 #ifndef QGEMM_DEFAULT_UNROLL_M

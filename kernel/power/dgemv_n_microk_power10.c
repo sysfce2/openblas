@@ -24,6 +24,7 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
 USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *****************************************************************************/
+#pragma GCC optimize("O2")
 
 #define HAVE_KERNEL_4x2 1
 #define HAVE_KERNEL_4x1 1
@@ -52,10 +53,7 @@ static void dgemv_kernel_4x2(BLASLONG n, FLOAT *a0, FLOAT *a1, FLOAT *xo, FLOAT 
 
 static void dgemv_kernel_4x1(BLASLONG n, FLOAT *a0, FLOAT *xo, FLOAT *y, FLOAT alpha)
 {
-    BLASLONG i;
-    FLOAT x[1]  __attribute__ ((aligned (16)));
-
-    FLOAT x0,x1;
+    FLOAT x0;
     x0 = xo[0] * alpha;
 
     __vector double   v_x0 = {x0,x0};

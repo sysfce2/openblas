@@ -54,6 +54,12 @@ gotoblas_t TABLE_NAME = {
 
   SWITCH_RATIO,
 
+  GEMM_DIVIDE_RATE,
+
+  GEMM_DIVIDE_LIMIT,
+
+  GEMM_PREFERRED_SIZE,
+
   GEMM_DEFAULT_OFFSET_A, GEMM_DEFAULT_OFFSET_B, GEMM_DEFAULT_ALIGN,
 
 #ifdef BUILD_HFLOAT16
@@ -216,6 +222,7 @@ gotoblas_t TABLE_NAME = {
 #endif
 #ifdef ARCH_ARM64
   sgemm_directTS,
+  sgemm_direct_performantTS,	
   sgemm_direct_alpha_betaTS,
   ssymm_direct_alpha_betaLUTS,
   ssymm_direct_alpha_betaLLTS,
@@ -227,6 +234,10 @@ gotoblas_t TABLE_NAME = {
   ssyrk_direct_alpha_betaUTTS,
   ssyrk_direct_alpha_betaLNTS,
   ssyrk_direct_alpha_betaLTTS,
+  ssyr2k_direct_alpha_betaUNTS,
+  ssyr2k_direct_alpha_betaUTTS,
+  ssyr2k_direct_alpha_betaLNTS,
+  ssyr2k_direct_alpha_betaLTTS,
 #endif
 
   sgemm_kernelTS, sgemm_betaTS,
@@ -1189,7 +1200,7 @@ static void init_parameter(void) {
 
       TABLE_NAME.dgemm_p = 112;
       TABLE_NAME.dgemm_q = 289;
-      TABLE_NAME.dgemm_r = 342;
+      TABLE_NAME.dgemm_r = 353;
 
       TABLE_NAME.cgemm_p = 128;
       TABLE_NAME.cgemm_q = 256;

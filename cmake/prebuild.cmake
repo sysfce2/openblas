@@ -98,6 +98,10 @@ if (${COMPILER_ID} STREQUAL "GNU")
   set(COMPILER_ID "GCC")
 endif ()
 
+if (HOST_OS STREQUAL "EMSCRIPTEN")
+	set (ARCH wasm)
+endif()
+
 string(TOUPPER ${ARCH} UC_ARCH)
 file(WRITE ${TARGET_CONF_TEMP}
   "#define OS_${HOST_OS}\t1\n"
@@ -1255,7 +1259,7 @@ endif ()
     set(ZGEMM_UNROLL_M 4)
     set(ZGEMM_UNROLL_N 4)
     set(SYMV_P 16)
-  elseif ("${TCORE}" STREQUAL "VORTEX")
+  elseif ("${TCORE}" STREQUAL "VORTEX" OR "${TCORE}" STREQUAL "VORTEXM4")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define ARMV8\n"
       "#define L1_CODE_SIZE\t32768\n"
@@ -1500,6 +1504,15 @@ endif ()
       "#define DTB_DEFAULT_ENTRIES 128\n"
       "#define DTB_SIZE 4096\n"
       "#define L2_ASSOCIATIVE 4\n")
+  elseif ("${TCORE}" STREQUAL "WASM128_GENERIC")
+    file(APPEND ${TARGET_CONF_TEMP}
+      "#define L1_DATA_SIZE 32768\n"
+      "#define L1_DATA_LINESIZE 32\n"
+      "#define L2_SIZE 1048576\n"
+      "#define L2_LINESIZE 32 \n"
+      "#define DTB_DEFAULT_ENTRIES 128\n"
+      "#define DTB_SIZE 4096\n"
+      "#define L2_ASSOCIATIVE 4\n")
   elseif ("${TCORE}" STREQUAL "LA64_GENERIC")
     file(APPEND ${TARGET_CONF_TEMP}
       "#define DTB_DEFAULT_ENTRIES 64\n")
@@ -1639,6 +1652,8 @@ else(NOT CMAKE_CROSSCOMPILING)
   unset (HAVE_VFP)
   unset (HAVE_VFPV3)
   unset (HAVE_VFPV4)
+  unset (HAVE_SVE)
+  unset (HAVE_SME)
   message(STATUS "Running getarch")
 
   # use the cmake binary w/ the -E param to run a shell command in a cross-platform way

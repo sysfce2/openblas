@@ -362,18 +362,6 @@ typedef int blasint;
 #define MAX_CPU_NUMBER 2
 #endif
 
-#if defined(OS_SUNOS)
-#define YIELDING	thr_yield()
-#endif
-
-#if defined(OS_WINDOWS)
-#if defined(_MSC_VER) && !defined(__clang__)
-#define YIELDING    YieldProcessor()
-#else
-#define YIELDING	SwitchToThread()
-#endif
-#endif
-
 #if defined(ARMV7) || defined(ARMV6) || defined(ARMV8) || defined(ARMV5)
 #define YIELDING        __asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop; \n");
 #endif
@@ -398,13 +386,27 @@ typedef int blasint;
 #endif
 #endif
 
-
-#ifdef __EMSCRIPTEN__
+#if defined(ARCH_WASM)
+#ifndef YIELDING
 #define YIELDING
+#endif
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#undef YIELDING // MSVC doesn't support assembly code
+#define YIELDING    	YieldProcessor()
 #endif
 
 #ifndef YIELDING
+#if defined(OS_SUNOS)
+#define YIELDING	thr_yield()
+
+#elif defined(OS_WINDOWS)
+#define YIELDING	SwitchToThread()
+
+#else // assume POSIX.1-2008
 #define YIELDING	sched_yield()
+#endif
 #endif
 
 /***
@@ -496,6 +498,10 @@ please https://github.com/xianyi/OpenBLAS/issues/246
 
 #ifdef ARCH_CSKY
 #include "common_csky.h"
+#endif
+
+#ifdef ARCH_WASM
+#include "common_wasm.h"
 #endif
 
 #ifndef ASSEMBLER
@@ -765,7 +771,7 @@ static __inline int readenv_atoi(char *env) {
 	return 0;
 }
 #else
-#ifdef OS_WINDOWS
+#if defined(OS_WINDOWS) && !defined(OS_CYGWIN_NT)
 static __inline int readenv_atoi(char *env) {
   env_var_t p;
   return readenv(p,env) ? 0 : atoi(p);

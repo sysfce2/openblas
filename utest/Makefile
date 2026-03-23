@@ -46,6 +46,9 @@ endif
 ifeq ($(OSNAME), $(filter $(OSNAME),Linux CYGWIN_NT))
 ifneq ($(USE_OPENMP), 1)
 OBJS += test_fork.o
+ifneq ($(NO_LAPACK), 1)
+OBJS += test_post_fork_async.o
+endif
 endif
 OBJS += test_post_fork.o
 endif
