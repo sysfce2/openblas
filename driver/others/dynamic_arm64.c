@@ -38,7 +38,13 @@
 /*********************************************************************/
 
 #include "common.h"
+
+#ifndef _MSC_VER
 #include <strings.h>
+#else
+#define strncasecmp _strnicmp
+#endif
+
 #if (defined OS_LINUX || defined OS_ANDROID)
 #include <asm/hwcap.h>
 #include <sys/auxv.h>
