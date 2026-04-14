@@ -1,6 +1,6 @@
 include $(KERNELDIR)/KERNEL.HASWELL
 
-ifeq ($(C_COMPILER)$(OS_WINDOWS), CLANG1)
+ifeq ($(C_COMPILER)$(OSNAME), CLANGWINNT)
 SGEMMKERNEL    = sgemm_kernel_16x4_skylakex.S
 STRMMKERNEL    = sgemm_kernel_16x4_skylakex.S
 else
@@ -25,7 +25,7 @@ SGEMM_SMALL_K_B0_TN = sgemm_small_kernel_tn_skylakex.c
 SGEMM_SMALL_K_TT = sgemm_small_kernel_tt_skylakex.c
 SGEMM_SMALL_K_B0_TT = sgemm_small_kernel_tt_skylakex.c
 
-ifeq ($(C_COMPILER)$(OS_WINDOWS), CLANG1)
+ifeq ($(C_COMPILER)$(OSNAME), CLANGWINNT)
 DGEMMKERNEL    =  dgemm_kernel_16x2_skylakex.S
 DTRMMKERNEL    =  dgemm_kernel_16x2_skylakex.S
 else
@@ -51,7 +51,7 @@ DGEMM_SMALL_K_B0_TT = dgemm_small_kernel_tt_skylakex.c
 SGEMM_BETA = sgemm_beta_skylakex.c
 DGEMM_BETA = dgemm_beta_skylakex.c
 
-ifeq ($(C_COMPILER)$(OS_WINDOWS), CLANG1)
+ifeq ($(C_COMPILER)$(OSNAME), CLANGWINNT)
 CGEMMKERNEL    =  cgemm_kernel_8x2_haswell.c
 ZGEMMKERNEL    =  zgemm_kernel_4x2_haswell.c
 else
