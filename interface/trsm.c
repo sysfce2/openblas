@@ -383,8 +383,6 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
 
 #endif
 
-  if ((args.m == 0) || (args.n == 0)) return;
-
   IDEBUG_START;
 
   FUNCTION_PROFILE_START();
