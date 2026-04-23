@@ -309,8 +309,8 @@ if (USE_OPENMP)
 endif()
 
 # Fix "Argument list too long" for macOS - mostly seen with older OS versions on POWERPC or Intel CPUs 
-if(APPLE)
-  # Use response files
+if(APPLE AND "${CMAKE_GENERATOR}" MATCHES ".*Makefiles")
+  # Use response files to get around the ARG_MAX limit, unless using the Ninja generator
   set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
   # Always build static library first
   if(BUILD_STATIC_LIBS)
@@ -333,7 +333,7 @@ if(APPLE)
   endif()
   if(NOT NOFORTRAN)
     set(CMAKE_Fortran_USE_RESPONSE_FILE_FOR_OBJECTS 1)
-    set(CMAKE_Fortran_CREATE_STATIC_LIBRARY ${CREATE_STATIC_LIBRARY_COMMAND})
+	set(CMAKE_Fortran_CREATE_STATIC_LIBRARY ${CREATE_STATIC_LIBRARY_COMMAND})
     if(BUILD_SHARED_LIBS)
       set(CMAKE_Fortran_CREATE_SHARED_LIBRARY
 	"sh -c 'echo \"\" | ${CMAKE_Fortran_COMPILER} -o dummy.o -c -x f95-cpp-input - '"

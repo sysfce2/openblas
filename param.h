@@ -3682,6 +3682,13 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 #define SBGEMM_DEFAULT_UNROLL_M 8
 #define SBGEMM_DEFAULT_UNROLL_N 8
 
+#undef SHGEMM_ALIGN_K
+#undef SHGEMM_DEFAULT_UNROLL_M
+#undef SHGEMM_DEFAULT_UNROLL_N
+#define SHGEMM_ALIGN_K 4
+#define SHGEMM_DEFAULT_UNROLL_M 8
+#define SHGEMM_DEFAULT_UNROLL_N 8
+
 #define SGEMM_DEFAULT_UNROLL_M  16
 #define SGEMM_DEFAULT_UNROLL_N  4
 
