@@ -155,7 +155,10 @@ jobs:
               exit 1
               ;;
           esac
+
+          
 name: xbuild-x86_64
+
 on: [push, pull_request]
 
 concurrency:
