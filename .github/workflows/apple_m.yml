@@ -10,7 +10,7 @@ permissions:
   contents: read # to fetch code (actions/checkout)
 
 jobs:
-  build:
+  build-windows:
     if: "github.repository == 'OpenMathLib/OpenBLAS'"
     runs-on: macos-14
 
@@ -157,6 +157,7 @@ jobs:
           esac
 
   xbuild-x86_64:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
     runs-on: macos-26
 
     strategy:
@@ -208,7 +209,8 @@ jobs:
           make TARGET=CORE2 DYNAMIC_ARCH=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 RANLIB="ls -l"
 
   xbuild-ios:
-      runs-on: macos-26
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: macos-26
 
     strategy:
       fail-fast: false
