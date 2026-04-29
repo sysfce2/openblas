@@ -254,4 +254,46 @@ jobs:
           ls -l /Applications
           make TARGET=ARMV8 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 CROSS=1
 
-  
+  xbuild-ios32:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
+    runs-on: macos-26
+
+    strategy:
+      fail-fast: false
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Print system information
+        run: |
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            sysctl -a | grep machdep.cpu
+          else
+            echo "::error::$RUNNER_OS not supported"
+            exit 1
+          fi
+
+      - name: Install Dependencies
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install -y gfortran cmake ccache libtinfo5
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            # It looks like "gfortran" isn't working correctly unless "gcc" is re-installed.
+            brew reinstall gcc
+            brew install coreutils ccache
+            brew install llvm
+            brew install --cask android-ndk
+          else
+            echo "::error::$RUNNER_OS not supported"
+            exit 1
+          fi
+
+      - name: AppleM1/LLVM armv7-androidndk xbuild
+        run: |
+          export ANDROID_NDK_HOME="/opt/homebrew/share/android-ndk"
+          export CC=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi23-clang
+          export AR=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ar
+          export RANLIB=/opt/homebrew/share/android-ndk/toolchains/llvm/prebuilt/darwin-x86_64/bin/llvm-ranlib
+          make TARGET=ARMV7 ARM_SOFTFP_ABI=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1
+
