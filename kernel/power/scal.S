@@ -91,7 +91,7 @@
 	fcmpu	cr0, FZERO, ALPHA
 	bne-	cr0, LL(A1I1)
 
-#ifdef (__FreeBSD__)
+#if defined(__FreeBSD__)
     LDLONG  FLAG, 104(SP)
 #else
     LDLONG  FLAG, 120(SP)
