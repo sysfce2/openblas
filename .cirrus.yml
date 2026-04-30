@@ -82,7 +82,7 @@
 #  - export CFLAGS="-O2 -unwindlib=none -Wno-macro-redefined -isysroot /Applications/Xcode_26.0.1.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -arch arm64 -miphoneos-version-min=10.0"
 #  - xcrun --sdk iphoneos --show-sdk-path
 #  - ls -l /Applications
-ä  - make TARGET=ARMV8 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 CROSS=1
+#  - make TARGET=ARMV8 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 CROSS=1
 #  always:
 #    config_artifacts:
 #      path: "*conf*"
