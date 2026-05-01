@@ -716,14 +716,13 @@ fully working OpenBLAS for this platform.
 
 Go to the directory where you unpacked OpenBLAS,and enter the following commands:
 ```bash
-CC="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
-
+CC="$(xcrun --sdk iphoneos --find clang)"
 SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-CFLAGS="-O2 -Wno-macro-redefined -isysroot $SDKROOT -arch arm64 -miphoneos-version-min=10.0"
 
-make TARGET=ARMV8 DYNAMIC_ARCH=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1
+make TARGET=ARMV8 DYNAMIC_ARCH=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 \
+  CC="${CC}" CFLAGS="-O2 -Wno-macro-redefined -isysroot ${SDKROOT} -arch arm64 -miphoneos-version-min=10.0"
 ```
-Adjust `MIN_IOS_VERSION` as necessary for your installation. E.g., change the version number
+Adjust `-miphoneos-version-min` as necessary for your installation. E.g., change the version number
 to the minimum iOS version you want to target and execute this file to build the library.
 
 ### HarmonyOS
