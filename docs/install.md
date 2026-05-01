@@ -710,7 +710,7 @@ message about a missing declaration or missing header file complex.h)
 
 ### iPhone/iOS
 
-As none of the current developers uses iOS, the following instructions are what
+As few of the current developers use iOS, the following instructions are what
 was found to work in our Azure CI setup, but as far as we know this builds a
 fully working OpenBLAS for this platform.
 
