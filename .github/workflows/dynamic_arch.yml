@@ -196,7 +196,7 @@ jobs:
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: ${{target-prefix}}-fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
           - msystem: MINGW32
             idx: int32
             target-prefix: mingw-w64-i686
@@ -204,21 +204,21 @@ jobs:
           - msystem: CLANG64
             idx: int32
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: ${{target-prefix}}-fc
+            fc-pkg: mingw-w64-clang-x86_64-fc
           - msystem: UCRT64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: ${{target-prefix}}-fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
           - msystem: CLANG64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: ${{target-prefix}}-fc
+            fc-pkg: mingw-w64-clang-x86_64-fc
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: ${{target-prefix}}-fc
+            fc-pkg: mingw-w64-ucrt-x86_64-fc
             build-type: None
         exclude:
           - msystem: MINGW32
