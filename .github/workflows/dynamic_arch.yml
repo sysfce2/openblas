@@ -196,29 +196,29 @@ jobs:
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: ${{target-prefix}}-fc
           - msystem: MINGW32
             idx: int32
             target-prefix: mingw-w64-i686
-            fc-pkg: fc
+            fc-pkg: 
           - msystem: CLANG64
             idx: int32
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: fc
+            fc-pkg: ${{target-prefix}}-fc
           - msystem: UCRT64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: ${{target-prefix}}-fc
           - msystem: CLANG64
             idx: int64
             idx64-flags: -DBINARY=64 -DINTERFACE64=1
             target-prefix: mingw-w64-clang-x86_64
-            fc-pkg: fc
+            fc-pkg: ${{target-prefix}}-fc
           - msystem: UCRT64
             idx: int32
             target-prefix: mingw-w64-ucrt-x86_64
-            fc-pkg: fc
+            fc-pkg: ${{target-prefix}}-fc
             build-type: None
         exclude:
           - msystem: MINGW32
@@ -247,7 +247,7 @@ jobs:
           install: >-
             base-devel
             ${{ matrix.target-prefix }}-cc
-            ${{ matrix.target-prefix }}-${{ matrix.fc-pkg }}
+            ${{ matrix.fc-pkg }}
             ${{ matrix.target-prefix }}-cmake
             ${{ matrix.target-prefix }}-ninja
             ${{ matrix.target-prefix }}-ccache
