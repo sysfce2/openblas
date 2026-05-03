@@ -155,7 +155,7 @@ extern gotoblas_t gotoblas_A64FX;
 #else //not a user-specified dynamic_list
 
 #ifdef OS_DARWIN
-#define gotoblas_CORTEXA55 gotoblas_ARMV8
+#define gotoblas_CORTEXA53 gotoblas_ARMV8
 #else
 extern gotoblas_t  gotoblas_CORTEXA53;
 #endif
