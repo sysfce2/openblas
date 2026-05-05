@@ -871,7 +871,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	vstr	OLD_ALPHA, ALPHA
 
 	sub	r3, fp, #128
-	vstm	r3, { s8 - s31} 				// store floating point registers
+	vstm	r3, { s16 - s31 } 				// store floating point registers
 
         movs    r4, #0
         str     r4, FP_ZERO
@@ -1446,7 +1446,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 .Lsgemm_kernel_L999:
 
 	sub	r3, fp, #128
-	vldm	r3, { s8 - s31}					// restore floating point registers
+	vldm	r3, { s16 - s31 }				// restore floating point registers
 
 	movs	r0, #0						// set return value
 	sub	sp, fp, #24
