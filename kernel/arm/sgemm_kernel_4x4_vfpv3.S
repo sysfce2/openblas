@@ -114,6 +114,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT4x4
 
+#ifdef __ARM_NEON__
+	vmov.f32		q4, #0.0
+	vmov.f32		q5, #0.0
+	vmov.f32		q6, #0.0
+	vmov.f32		q7, #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
 	vmov.f32		s18, s16
@@ -130,11 +136,20 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	vmov.f32		s29, s16
 	vmov.f32		s30, s16
 	vmov.f32		s31, s16
+#endif
 
 .endm
 
 .macro KERNEL4x4_I
 
+#ifdef __ARM_NEON__
+	vld1.32   {q0,q1}, [AO]!
+	vld1.32   {q2,q3}, [BO]!
+	vmul.f32  q4, q0, d4[0]
+	vmul.f32  q5, q0, d4[1]
+	vmul.f32  q6, q0, d5[0]
+	vmul.f32  q7, q0, d5[1]
+#else
 	pld	[ AO , #A_PRE ]
 	vldmia.f32 AO!, { s0 - s1 }
 	pld	[ BO , #B_PRE ]
@@ -165,12 +180,23 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmuls	s29  , s1,  s11
 	fmuls	s30  , s2,  s11
 	fmuls	s31  , s3,  s11
+#endif
 
 .endm
 
 
 .macro KERNEL4x4_M2
 
+#ifdef __ARM_NEON__
+	vld1.32   {q0}, [AO]!
+	vld1.32   {q2}, [BO]!
+//	pld       [ AO , #A_PRE ]
+//	pld       [ BO , #B_PRE ]
+	vmla.f32  q4, q1, d6[0]
+	vmla.f32  q5, q1, d6[1]
+	vmla.f32  q6, q1, d7[0]
+	vmla.f32  q7, q1, d7[1]
+#else
 	pld	[ AO , #A_PRE ]
 	fmacs	s16  , s4,  s12
 	fmacs	s17  , s5,  s12
@@ -196,12 +222,22 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmacs	s29  , s5,  s15
 	fmacs	s30  , s6,  s15
 	fmacs	s31  , s7,  s15
+#endif
 
 .endm
 
 
 .macro KERNEL4x4_M1
 
+#ifdef __ARM_NEON__
+	vld1.32   {q1}, [AO]!
+	vld1.32   {q3}, [BO]!
+
+	vmla.f32  q4, q0, d4[0]
+	vmla.f32  q5, q0, d4[1]
+	vmla.f32  q6, q0, d5[0]
+	vmla.f32  q7, q0, d5[1]
+#else
 	fmacs	s16  , s0,  s8
 	vldmia.f32 AO!, { s4 - s7 }
 	fmacs	s17  , s1,  s8
@@ -225,6 +261,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmacs	s29  , s1,  s11
 	fmacs	s30  , s2,  s11
 	fmacs	s31  , s3,  s11
+#endif
 
 .endm
 
@@ -232,6 +269,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL4x4_E
 
+#ifdef __ARM_NEON__
+	vmla.f32  q4, q1, d6[0]
+	vmla.f32  q5, q1, d6[1]
+	vmla.f32  q6, q1, d7[0]
+	vmla.f32  q7, q1, d7[1]
+#else
 	fmacs	s16  , s4,  s12
 	fmacs	s17  , s5,  s12
 	fmacs	s18  , s6,  s12
@@ -251,6 +294,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmacs	s29  , s5,  s15
 	fmacs	s30  , s6,  s15
 	fmacs	s31  , s7,  s15
+#endif
 
 .endm
 
@@ -259,6 +303,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL4x4_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {q2}, [BO]!
+	vld1.32   {q0}, [AO]!
+	vmla.f32  q4, q0, d4[0]
+	vmla.f32  q5, q0, d4[1]
+	vmla.f32  q6, q0, d5[0]
+	vmla.f32  q7, q0, d5[1]
+#else
 	flds	s8 , [ BO ]
 
 	flds	s0 , [ AO ]
@@ -290,11 +342,38 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmacs	s30  , s2,  s11
 	add	BO , BO, #16
 	fmacs	s31  , s3,  s11
+#endif
 
 .endm
 
 .macro SAVE4x4
 
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	ldr       r3, LDC
+	vld1.32   {q2}, [CO1]
+	add       CO2, CO1, r3
+	add       r4, CO2, r3
+
+	vld1.32   {q3}, [CO2]
+	vmla.f32  q2, q4, d0[0]
+	vmla.f32  q3, q5, d0[0]
+	pld       [ CO1, #C_PRE ]
+	vst1.32   {q2}, [CO1]!
+
+	vld1.32   {q2}, [r4]
+	vst1.32   {q3}, [CO2]
+	vmla.f32  q2, q6, d0[0]
+	pld       [ CO2, #C_PRE ]
+	add       CO2, r4 , r3
+
+	vld1.32   {q3}, [CO2]
+	vst1.32   {q2}, [r4]
+	vmla.f32  q3, q7, d0[0]
+	pld       [ r4, #C_PRE ]
+	pld       [ CO2, #C_PRE ]
+	vst1.32   {q3}, [CO2]
+#else
 	ldr	r3  , LDC
 	add	CO2 , CO1, r3
 	flds		s0, ALPHA
@@ -354,6 +433,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	pld	[ CO2 , #C_PRE ]
 
 	add	CO1, CO1, #16
+#endif
 
 .endm
 
@@ -361,6 +441,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT2x4
 
+#ifdef __ARM_NEON__
+	vmov.f32		d8,  #0.0
+	vmov.f32		d10, #0.0
+	vmov.f32		d12, #0.0
+	vmov.f32		d14, #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
 	vmov.f32		s20, s16
@@ -369,6 +455,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	vmov.f32		s25, s16
 	vmov.f32		s28, s16
 	vmov.f32		s29, s16
+#endif
 
 .endm
 
@@ -376,6 +463,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL2x4_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {q2}, [BO]!
+	vld1.32   {d0}, [AO]!
+	vmla.f32  d8,  d0, d4[0]
+	vmla.f32  d10, d0, d4[1]
+	vmla.f32  d12, d0, d5[0]
+	vmla.f32  d14, d0, d5[1]
+#else
 	flds	s8 , [ BO ]
 	flds	s9 , [ BO, #4 ]
 	flds	s10, [ BO, #8 ]
@@ -397,6 +492,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fmacs	s29  , s1,  s11
 	add	AO , AO, #8
 	add	BO , BO, #16
+#endif
 
 .endm
 
@@ -406,6 +502,24 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	add	CO2 , CO1, r3
 	add	r4  , CO2, r3
 
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {d4}, [CO1]
+	vld1.32   {d6}, [CO2]
+	vmla.f32  d4, d8,  d0[0]
+	vmla.f32  d6, d10, d0[0]
+	vst1.32   {d4}, [CO1]!
+
+	vld1.32   {d4}, [r4]
+	vst1.32   {d6}, [CO2]
+	vmla.f32  d4, d12, d0[0]
+	add       CO2, r4, r3
+
+	vld1.32   {d6}, [CO2]
+	vst1.32   {d4}, [r4]
+	vmla.f32  d6, d14, d0[0]
+	vst1.32   {d6}, [CO2]
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -447,6 +561,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s13, [CO2, #4 ]
 
 	add	CO1, CO1, #8
+#endif
 
 .endm
 
@@ -466,6 +581,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL1x4_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {q2},    [BO]!
+	vld1.32   {d0[0]}, [AO]!
+	vmla.f32  s16, s0, s8
+	vmla.f32  s20, s0, s9
+	vmla.f32  s24, s0, s10
+	vmla.f32  s28, s0, s11
+#else
 	flds	s8 , [ BO ]
 	flds	s9 , [ BO, #4 ]
 	flds	s10, [ BO, #8 ]
@@ -480,6 +603,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #4
 	add	BO , BO, #16
+#endif
 
 .endm
 
@@ -518,6 +642,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT4x2
 
+#ifdef __ARM_NEON__
+	vmov.f32		q4, #0.0
+	vmov.f32		q5, #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
 	vmov.f32		s18, s16
@@ -526,6 +654,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	vmov.f32		s21, s16
 	vmov.f32		s22, s16
 	vmov.f32		s23, s16
+#endif
 
 .endm
 
@@ -533,6 +662,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL4x2_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4}, [BO]!
+	vld1.32   {q0}, [AO]!
+	vmla.f32  q4, q0, d4[0]
+	vmla.f32  q5, q0, d4[1]
+#else
 	flds	s8 , [ BO ]
 	flds	s9 , [ BO, #4 ]
 
@@ -553,6 +688,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #16
 	add	BO , BO, #8
+#endif
 
 .endm
 
@@ -561,6 +697,15 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	ldr	r3  , LDC
 	add	CO2 , CO1, r3
 
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {q2}, [CO1]
+	vld1.32   {q3}, [CO2]
+	vmla.f32  q2, q4, d0[0]
+	vmla.f32  q3, q5, d0[0]
+	vst1.32   {q2}, [CO1]!
+	vst1.32   {q3}, [CO2]
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -594,6 +739,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s15, [CO2, #12 ]
 
 	add	CO1, CO1, #16
+#endif
 
 .endm
 
@@ -602,10 +748,15 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT2x2
 
+#ifdef __ARM_NEON__
+	vmov.f32		d8,  #0.0
+	vmov.f32		d10, #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
 	vmov.f32		s20, s16
 	vmov.f32		s21, s16
+#endif
 
 .endm
 
@@ -613,6 +764,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL2x2_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4}, [BO]!
+	vld1.32   {d0}, [AO]!
+	vmla.f32  d8,  d0, d4[0]
+	vmla.f32  d10, d0, d4[1]
+#else
 	flds	s8 , [ BO ]
 	flds	s9 , [ BO, #4 ]
 
@@ -627,6 +784,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #8
 	add	BO , BO, #8
+#endif
 
 .endm
 
@@ -635,6 +793,15 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	ldr	r3  , LDC
 	add	CO2 , CO1, r3
 
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {d4}, [CO1]
+	vld1.32   {d6}, [CO2]
+	vmla.f32  d4, d8,  d0[0]
+	vmla.f32  d6, d10, d0[0]
+	vst1.32   {d4}, [CO1]!
+	vst1.32   {d6}, [CO2]
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -656,6 +823,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s13, [CO2, #4 ]
 
 	add	CO1, CO1, #8
+#endif
 
 .endm
 
@@ -672,6 +840,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL1x2_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4},    [BO]!
+	vld1.32   {d0[0]}, [AO]!
+	vmla.f32  s16, s0, s8
+	vmla.f32  s20, s0, s9
+#else
 	flds	s8 , [ BO ]
 	flds	s9 , [ BO, #4 ]
 
@@ -681,6 +855,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #4
 	add	BO , BO, #8
+#endif
 
 .endm
 
@@ -689,6 +864,15 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	ldr	r3  , LDC
 	add	CO2 , CO1, r3
 
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {d4[0]}, [CO1]
+	vld1.32   {d6[0]}, [CO2]
+	vmla.f32  s8,  s0, s16
+	vmla.f32  s12, s0, s20
+	vst1.32   {d4[0]}, [CO1]!
+	vst1.32   {d6[0]}, [CO2]
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -700,6 +884,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s12, [CO2]
 
 	add	CO1, CO1, #4
+#endif
 
 .endm
 
@@ -708,10 +893,14 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT4x1
 
+#ifdef __ARM_NEON__
+	vmov.f32		q4, #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
 	vmov.f32		s18, s16
 	vmov.f32		s19, s16
+#endif
 
 .endm
 
@@ -719,6 +908,11 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL4x1_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4[0]}, [BO]!
+	vld1.32   {q0},    [AO]!
+	vmla.f32  q4, q0, d4[0]
+#else
 	flds	s8 , [ BO ]
 
 	flds	s0 , [ AO ]
@@ -733,12 +927,18 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #16
 	add	BO , BO, #4
+#endif
 
 .endm
 
 .macro SAVE4x1
 
-
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {q2}, [CO1]
+	vmla.f32  q2, q4, d0[0]
+	vst1.32   {q2}, [CO1]!
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -757,6 +957,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s11, [CO1, #12 ]
 
 	add	CO1, CO1, #16
+#endif
 
 .endm
 
@@ -767,8 +968,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro INIT2x1
 
+#ifdef __ARM_NEON__
+	vmov.f32		d8,  #0.0
+#else
 	flds			s16, FP_ZERO
 	vmov.f32		s17, s16
+#endif
 
 .endm
 
@@ -776,6 +981,11 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL2x1_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4[0]}, [BO]!
+	vld1.32   {d0},    [AO]!
+	vmla.f32  d8, d0, d4[0]
+#else
 	flds	s8 , [ BO ]
 
 	flds	s0 , [ AO ]
@@ -786,12 +996,18 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #8
 	add	BO , BO, #4
+#endif
 
 .endm
 
 .macro SAVE2x1
 
-
+#ifdef __ARM_NEON__
+	vldr      s0, ALPHA
+	vld1.32   {d4}, [CO1]
+	vmla.f32  d4, d8, d0[0]
+	vst1.32   {d4}, [CO1]!
+#else
 	flds		s0, ALPHA
 
 	flds	s8 , [CO1]
@@ -804,6 +1020,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	fsts	s9 , [CO1, #4 ]
 
 	add	CO1, CO1, #8
+#endif
 
 .endm
 
@@ -819,6 +1036,11 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 .macro KERNEL1x1_SUB
 
+#ifdef __ARM_NEON__
+	vld1.32   {d4[0]}, [BO]!
+	vld1.32   {d0[0]}, [AO]!
+	vmla.f32  s16, s0, s8
+#else
 	flds	s8 , [ BO ]
 
 	flds	s0 , [ AO ]
@@ -827,6 +1049,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 	add	AO , AO, #4
 	add	BO , BO, #4
+#endif
 
 .endm
 
