@@ -443,6 +443,10 @@ To then use the built OpenBLAS shared library in Visual Studio:
 
 ### Windows on Arm
 
+If you want to use a regular x64 Windows build of OpenBLAS with x64 software in the Prism emulator, be sure to use the latest version of Prism, and to check the box
+to "Disable floating point optimization" in the Emulation settings. (Right-click on the executable to open "Properties", then on the "Compatibility" tab click on
+"Change emulation settings").
+
 A fully functional native OpenBLAS for WoA that can be built as both a static and dynamic library using LLVM toolchain and Visual Studio 2022. Before starting to build, make sure that you have installed Visual Studio 2022 on your ARM device, including the "Desktop Development with C++" component (that contains the cmake tool).
 (Note that you can use the free "Visual Studio 2022 Community Edition" for this task. In principle it would be possible to build with VisualStudio alone, but using
 the LLVM toolchain enables native compilation of the Fortran sources of LAPACK and of all the optimized assembly files, which VisualStudio cannot handle on its own)
@@ -706,20 +710,19 @@ message about a missing declaration or missing header file complex.h)
 
 ### iPhone/iOS
 
-As none of the current developers uses iOS, the following instructions are what
+As few of the current developers use iOS, the following instructions are what
 was found to work in our Azure CI setup, but as far as we know this builds a
 fully working OpenBLAS for this platform.
 
 Go to the directory where you unpacked OpenBLAS,and enter the following commands:
 ```bash
-CC="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
-
+CC="$(xcrun --sdk iphoneos --find clang)"
 SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
-CFLAGS="-O2 -Wno-macro-redefined -isysroot $SDKROOT -arch arm64 -miphoneos-version-min=10.0"
 
-make TARGET=ARMV8 DYNAMIC_ARCH=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1
+make TARGET=ARMV8 DYNAMIC_ARCH=1 NUM_THREADS=32 HOSTCC=clang NOFORTRAN=1 \
+  CC="${CC}" CFLAGS="-O2 -Wno-macro-redefined -isysroot ${SDKROOT} -arch arm64 -miphoneos-version-min=10.0"
 ```
-Adjust `MIN_IOS_VERSION` as necessary for your installation. E.g., change the version number
+Adjust `-miphoneos-version-min` as necessary for your installation. E.g., change the version number
 to the minimum iOS version you want to target and execute this file to build the library.
 
 ### HarmonyOS
