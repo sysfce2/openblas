@@ -1,16 +1,32 @@
 name: freebsd
 
-on: pull_request
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # to fetch code (actions/checkout)
 
 jobs:
   bsd-x86:
+    if: "github.repository == 'OpenMathLib/OpenBLAS'"
     runs-on: ubuntu-latest
     steps:
-     -uses: actions/checkout@v6
-     -name: Default build
-      id: bsd-x86-64
-      uses: vmactions/freebsd-vm@v1
-      with:
+     - name: checkout
+       uses: actions/checkout@v6
+     
+     - name: build
+       id: bsd_x86_64
+       uses: vmactions/freebsd-vm@v1
+       with:
         usesh: true
         prepare: |
 
