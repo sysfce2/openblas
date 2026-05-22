@@ -33,4 +33,4 @@ jobs:
         run: |
           freebsd-version
           sysctl hw.ncpu
-          make
+          gmake
