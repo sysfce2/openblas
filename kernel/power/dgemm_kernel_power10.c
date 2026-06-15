@@ -104,7 +104,7 @@ typedef FLOAT v4sf_t __attribute__ ((vector_size (16)));
     __builtin_mma_xvf64gerpp(&acc5, rowB1, rowA[2]);\
     __builtin_mma_xvf64gerpp(&acc6, rowB, rowA[3]);\
     __builtin_mma_xvf64gerpp(&acc7, rowB1, rowA[3]);
-#define PREFETCH1(x, y) asm volatile ("dcbt %0, %1" : : "r" (x), "b" (y) : "memory");
+#define PREFETCH1(x, y) asm volatile ("dcbt %0, %1" : : "b" (x), "r" (y) : "memory");
 
 #if (defined(LEFT) && !defined(TRANSA)) || (!defined(LEFT) && defined(TRANSA))
 #define REFRESH_TEMP_BK(x, y) \

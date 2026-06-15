@@ -221,7 +221,7 @@ typedef FLOAT v4sf_t __attribute__ ((vector_size (16)));
 	  CO[2*ldc+CI+2] A_OP tr[3] * alpha_r - ti[3] * alpha_i;      \
 	  CO[2*ldc+CI+3] A_OP ti[3] * alpha_r + tr[3] * alpha_i;
 
-#define PREFETCH1(x, y) asm volatile ("dcbt %0, %1" : : "r" (x), "b" (y) : "memory");
+#define PREFETCH1(x, y) asm volatile ("dcbt %0, %1" : : "b" (x), "r" (y) : "memory");
 
 #if (defined(LEFT) && !defined(TRANSA)) || (!defined(LEFT) && defined(TRANSA))
 #define REFRESH_TEMP_BK(x, y) \
