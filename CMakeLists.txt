@@ -58,9 +58,10 @@ else()
   set(NO_AFFINITY 1)
 endif()
 
-option(CPP_THREAD_SAFETY_TEST "Run a massively parallel DGEMM test to confirm thread safety of the library (requires OpenMP and about 1.3GB of RAM)" OFF)
+option(CPP_THREAD_SAFETY_TEST "Run massively parallel DGEMM tests to confirm thread safety of the library (requires about 1.3GB of RAM)" OFF)
+option(CPP_THREAD_SAFETY_USE_OPENMP "Use OpenMP to launch the C++ thread safety tests" ON)
 
-option(CPP_THREAD_SAFETY_GEMV "Run a massively parallel DGEMV test to confirm thread safety of the library (requires OpenMP)" OFF)
+option(CPP_THREAD_SAFETY_GEMV "Run a massively parallel DGEMV test to confirm thread safety of the library" OFF)
 option(BUILD_STATIC_LIBS "Build static library" OFF)
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
 if(NOT BUILD_STATIC_LIBS AND NOT BUILD_SHARED_LIBS)
@@ -820,4 +821,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
 install(EXPORT "${PN}${SUFFIX64}Targets"
         NAMESPACE "${PN}${SUFFIX64}::"
         DESTINATION ${CMAKECONFIG_INSTALL_DIR})
-
