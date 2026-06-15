@@ -838,7 +838,6 @@ static gotoblas_t *get_coretype(void){
 			 return &gotoblas_ZEN;
           else
             return &gotoblas_BARCELONA;
-		  }
 		}
 	    if (ecx & (1 <<  0)) return &gotoblas_OPTERON_SSE3;
 	else return &gotoblas_OPTERON;
