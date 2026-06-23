@@ -98,7 +98,11 @@
 #endif
 
 typedef struct {
+#ifdef HAVE_C11
+  _Atomic
+#else
   volatile
+#endif
    BLASLONG working[MAX_CPU_NUMBER][CACHE_LINE_SIZE * DIVIDE_RATE_MAX];
 } job_t;
 
