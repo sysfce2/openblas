@@ -200,7 +200,7 @@ jobs:
           - msystem: MINGW32
             idx: int32
             target-prefix: mingw-w64-i686
-            fc-pkg: 
+            fc-pkg:
           - msystem: CLANG64
             idx: int32
             target-prefix: mingw-w64-clang-x86_64
@@ -460,13 +460,12 @@ jobs:
         run: |
           cd build
           if [ "${{ matrix.backend }}" = "tsan" ]; then
-            export OPENBLAS_NUM_THREADS=2
             export LLVM_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer
             export TSAN_OPTIONS=halt_on_error=1:exitcode=66:second_deadlock_stack=1
           else
-            export OPENBLAS_NUM_THREADS=8
             export OMP_NUM_THREADS=16
           fi
+          export OPENBLAS_NUM_THREADS=8
           ctest -R 'dgemm_thread_safety|dgemm_thread_safety_mixed|dgemv_thread_safety' --output-on-failure
 
 
@@ -687,7 +686,7 @@ jobs:
       - name: Build OpenBLAS
         run: |
           make -j${nproc} TARGET=NEOVERSEN1 USE_OPENMP=1
-  
+
   neoverse_n1_ilp64_build:
     if: "github.repository == 'OpenMathLib/OpenBLAS'"
     runs-on: ubuntu-24.04-arm
