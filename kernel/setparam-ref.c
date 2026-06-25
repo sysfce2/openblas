@@ -2206,7 +2206,32 @@ static void init_parameter(void) {
 
 #endif
 
+int l3_kb = get_l3_size();
+unsigned int eax, ebx, ecx, edx;
+cpuid(0, &eax, &ebx, &ecx, &edx);
 
+if ((ebx == 0x68747541) && (l3_kb > 0) && (l3_kb % 32768 == 0)) {
+#if BUILD_SINGLE == 1
+    TABLE_NAME.sgemm_p = 384;
+    TABLE_NAME.sgemm_q = 512;
+    TABLE_NAME.sgemm_r = 5936;
+#endif
+#if BUILD_DOUBLE == 1
+    TABLE_NAME.dgemm_p = 512;
+    TABLE_NAME.dgemm_q = 512;
+    TABLE_NAME.dgemm_r = 2288;
+#endif
+#if BUILD_COMPLEX == 1
+    TABLE_NAME.cgemm_p = 160;
+    TABLE_NAME.cgemm_q = 480;
+    TABLE_NAME.cgemm_r = 528;
+#endif
+#if BUILD_COMPLEX16 == 1
+    TABLE_NAME.zgemm_p = 176;
+    TABLE_NAME.zgemm_q = 256;
+    TABLE_NAME.zgemm_r = 1520;
+#endif
+}
 
 }
 #endif //RISCV64
