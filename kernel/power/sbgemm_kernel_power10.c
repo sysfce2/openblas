@@ -46,8 +46,73 @@ bfloat16tof32 (bfloat16 f16)
 #endif
 
 typedef __vector unsigned char  vec_t;
+/* Under BGEMM, FLOAT resolves to bfloat16 (see common.h), but the MMA
+ * accumulators always produce float32.  Declare internal float vector types
+ * explicitly so arithmetic stays in float32 regardless of FLOAT. */
+#ifdef BGEMM
+typedef float v4sf_t __attribute__ ((vector_size (16)));
+typedef float v2sf_t __attribute__ ((vector_size (8)));
+/* Scalar float alpha derived from the bfloat16 alpha parameter. */
+#else
 typedef FLOAT v4sf_t __attribute__ ((vector_size (16)));
 typedef FLOAT v2sf_t __attribute__ ((vector_size (8)));
+#endif
+
+#ifdef BGEMM
+/*
+ * STORE4_BF16: C[0..3] += alpha * acc  for a BF16 output matrix.
+ *
+ * All arithmetic in float32.  One VSX conversion instruction for the store:
+ *   xvcvspbf16  — convert float32 sum to BF16 (4 lanes, 1 instruction)
+ *
+ * The read of existing C is done element-wise with BF16TOF32 (scalar widening).
+ * This is the same approach used throughout the rest of the kernel for C access.
+ *
+ * Steps:
+ *   1. Read 4 existing BF16 values from C, widen to float32 (BF16TOF32)
+ *   2. Scale acc by float32 alpha, add to existing C — all in float32
+ *   3. Convert float32 sum → BF16 via xvcvspbf16 (1 VSX instruction, 4 lanes)
+ *   4. Extract BF16 results via uint16 element indices 0,2,4,6 and store
+ */
+#define STORE4_BF16(ptr, acc_vec, alpha_f32) \
+  do { \
+    v4sf_t _c = {                                                             \
+      BF16TOF32 ((ptr)[0]), BF16TOF32 ((ptr)[1]),                            \
+      BF16TOF32 ((ptr)[2]), BF16TOF32 ((ptr)[3])                             \
+    };                                                                        \
+    v4sf_t _sum = _c + (acc_vec) * (alpha_f32);                              \
+    vec_t _conv = __builtin_vsx_xvcvspbf16 ((vec_t)_sum);                    \
+    typedef __vector unsigned short vec_u16_t;                                \
+    vec_u16_t _cv = (vec_u16_t) _conv;                                       \
+    (ptr)[0] = _cv[0];                                                        \
+    (ptr)[1] = _cv[2];                                                        \
+    (ptr)[2] = _cv[4];                                                        \
+    (ptr)[3] = _cv[6];                                                        \
+  } while (0)
+
+/* Same as STORE4_BF16 but for 2 BF16 lanes (n&2 remainder paths). */
+#define STORE2_BF16(ptr, acc_vec, alpha_f32) \
+  do { \
+    v4sf_t _c = { BF16TOF32 ((ptr)[0]), BF16TOF32 ((ptr)[1]), 0, 0 };        \
+    v4sf_t _sum = _c + (acc_vec) * (alpha_f32);                              \
+    vec_t _conv = __builtin_vsx_xvcvspbf16 ((vec_t)_sum);                    \
+    typedef __vector unsigned short vec_u16_t;                                \
+    vec_u16_t _cv = (vec_u16_t) _conv;                                       \
+    (ptr)[0] = _cv[0];                                                        \
+    (ptr)[1] = _cv[2];                                                        \
+  } while (0)
+
+/* Scalar float32 → BF16 using xvcvspbf16 on a 1-element vector.
+ * Used for single-element remainder paths (m&1, n&1 tails). */
+static inline bfloat16
+f32_to_bf16_scalar (float f)
+{
+  v4sf_t v = { f, 0, 0, 0 };
+  vec_t conv = __builtin_vsx_xvcvspbf16 ((vec_t)v);
+  /* Extract BF16 from high 16b of first slot via vector element access */
+  return (((__vector unsigned short)conv)[0]);
+}
+#endif /* BGEMM */
 
 /* 
  * BFLOAT16 xvbf16ger2pp instruction needs 4×2 matrix of
@@ -57,6 +122,8 @@ typedef FLOAT v2sf_t __attribute__ ((vector_size (8)));
 #define MERGE_HIGH(x, y) (vec_t) vec_mergeh ((vector short)x, (vector short)y)
 #define MERGE_LOW(x, y) (vec_t) vec_mergel ((vector short)x, (vector short)y)
 
+#ifndef BGEMM
+/* ---- SBGEMM: accumulator result is float32; C is float* ---- */
 #define SAVE_ACC(ACC, J)  \
 	  __builtin_mma_disassemble_acc ((void *)result, ACC); \
 	  rowC = (v4sf_t *) &CO[0* ldc+J]; \
@@ -98,7 +165,7 @@ typedef FLOAT v2sf_t __attribute__ ((vector_size (8)));
 	  rowC = (v2sf_t *) &CO[7* ldc+J]; \
           rowC[0] += result[6] * alpha;
 
- #define  SAVE4x2_ACC_SCALAR(ACC) {                             \
+#define  SAVE4x2_ACC_SCALAR(ACC) {                              \
            __builtin_mma_disassemble_acc ((void *)result, ACC); \
            res[0] = result[0] * alpha;                          \
            res[1] = result[1] * alpha;                          \
@@ -110,7 +177,7 @@ typedef FLOAT v2sf_t __attribute__ ((vector_size (8)));
            CO[3 * ldc] += res[3][0];                            \
  }
 
- #define  SAVE4x2_ACC1_SCALAR(ACC) {                            \
+#define  SAVE4x2_ACC1_SCALAR(ACC) {                             \
            __builtin_mma_disassemble_acc ((void *)result, ACC); \
            res[0] = result[0] * alpha;                          \
            res[1] = result[1] * alpha;                          \
@@ -122,14 +189,77 @@ typedef FLOAT v2sf_t __attribute__ ((vector_size (8)));
            CO[7 * ldc] += res[3][0];                            \
 }
 
-#define MMA __builtin_mma_xvbf16ger2pp
-
 #define  SAVE2x4_ACC(ACC, J)  \
 	  __builtin_mma_disassemble_acc ((void *)result, ACC); \
 	  rowC = (v4sf_t *) &CO[0* ldc+J]; \
           rowC[0] += result[0] * alpha; \
 	  rowC = (v4sf_t *) &CO[1* ldc+J]; \
           rowC[0] += result[1] * alpha;
+
+#else /* BGEMM: accumulator result is float32; C is bfloat16* */
+
+/* Disassemble, scale by float alpha, convert each float32 lane to BF16 and
+ * store to the BF16 output row.  CO is bfloat16*, J is column offset. */
+#define SAVE_ACC(ACC, J) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    STORE4_BF16 (&CO[0 * ldc + (J)], result[0], falpha); \
+    STORE4_BF16 (&CO[1 * ldc + (J)], result[1], falpha); \
+    STORE4_BF16 (&CO[2 * ldc + (J)], result[2], falpha); \
+    STORE4_BF16 (&CO[3 * ldc + (J)], result[3], falpha); \
+
+#define SAVE_ACC1(ACC, J) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    STORE4_BF16 (&CO[4 * ldc + (J)], result[0], falpha); \
+    STORE4_BF16 (&CO[5 * ldc + (J)], result[1], falpha); \
+    STORE4_BF16 (&CO[6 * ldc + (J)], result[2], falpha); \
+    STORE4_BF16 (&CO[7 * ldc + (J)], result[3], falpha); \
+
+/* SAVE4x2_ACC: 2-wide B side — accumulator row i maps to C row i, cols J..J+1 */
+#define SAVE4x2_ACC(ACC, J) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    STORE2_BF16 (&CO[0 * ldc + (J)], result[0], falpha); \
+    STORE2_BF16 (&CO[1 * ldc + (J)], result[1], falpha); \
+    STORE2_BF16 (&CO[2 * ldc + (J)], result[2], falpha); \
+    STORE2_BF16 (&CO[3 * ldc + (J)], result[3], falpha); \
+
+#define SAVE4x2_ACC1(ACC, J) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    STORE2_BF16 (&CO[4 * ldc + (J)], result[0], falpha); \
+    STORE2_BF16 (&CO[5 * ldc + (J)], result[1], falpha); \
+    STORE2_BF16 (&CO[6 * ldc + (J)], result[2], falpha); \
+    STORE2_BF16 (&CO[7 * ldc + (J)], result[3], falpha); \
+
+#define SAVE4x2_ACC_SCALAR(ACC) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    res[0] = result[0] * falpha; \
+    res[1] = result[1] * falpha; \
+    res[2] = result[2] * falpha; \
+    res[3] = result[3] * falpha; \
+    CO[0 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[0 * ldc]) + res[0][0]); \
+    CO[1 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[1 * ldc]) + res[1][0]); \
+    CO[2 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[2 * ldc]) + res[2][0]); \
+    CO[3 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[3 * ldc]) + res[3][0]);
+
+#define SAVE4x2_ACC1_SCALAR(ACC) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    res[0] = result[0] * falpha; \
+    res[1] = result[1] * falpha; \
+    res[2] = result[2] * falpha; \
+    res[3] = result[3] * falpha; \
+    CO[4 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[4 * ldc]) + res[0][0]); \
+    CO[5 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[5 * ldc]) + res[1][0]); \
+    CO[6 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[6 * ldc]) + res[2][0]); \
+    CO[7 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[7 * ldc]) + res[3][0]);   
+
+#define SAVE2x4_ACC(ACC, J) \
+    __builtin_mma_disassemble_acc ((void *)result, ACC); \
+    STORE4_BF16 (&CO[0 * ldc + (J)], result[0], falpha); \
+    STORE4_BF16 (&CO[1 * ldc + (J)], result[1], falpha); \
+
+#endif /* BGEMM */
+
+/* MMA instruction is identical for both SBGEMM and BGEMM */
+#define MMA __builtin_mma_xvbf16ger2pp
 
 #define SET_ACC_ZERO4() \
 	  __builtin_mma_xxsetaccz (&acc0); \
@@ -156,7 +286,13 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
        IFLOAT * B, FLOAT * C, BLASLONG ldc)
 {
   BLASLONG i1;
+#ifdef BGEMM
+  /* alpha is bfloat16 under BGEMM; convert once to float for all arithmetic. */
+  float falpha = BF16TOF32 (alpha);
+  v4sf_t valpha = { falpha, falpha, falpha, falpha };
+#else
   v4sf_t valpha = { alpha, alpha, alpha, alpha };
+#endif
   vector short vzero = { 0, 0, 0, 0, 0, 0, 0, 0 };
   /* Loop for n >= 8. */
   for (i1 = 0; i1 < (n >> 3); i1++)
@@ -173,7 +309,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       for (j = 0; j < (m >> 4); j++)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7;
 	  SET_ACC_ZERO8 ();
@@ -228,7 +366,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 8)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3;
 	  SET_ACC_ZERO4 ();
@@ -269,7 +409,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 4)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -301,8 +443,12 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 2)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v2sf_t *rowC;
 	  v2sf_t result[8];
+#else
+          v4sf_t result[4];
+#endif
 	  __vector_quad acc0, acc1;
 	  __builtin_mma_xxsetaccz (&acc0);
 	  __builtin_mma_xxsetaccz (&acc1);
@@ -379,7 +525,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	{
 	  IFLOAT *BO = B;
 	  IFLOAT *A1 = AO + (16 * k);
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7;
 	  SET_ACC_ZERO8 ();
@@ -434,7 +582,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 16)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3;
 	  SET_ACC_ZERO4 ();
@@ -473,7 +623,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 8)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -505,7 +657,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 4)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  __vector_quad acc0;
 	  v4sf_t result[4];
 	  BLASLONG l = 0;
@@ -534,8 +688,12 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 2)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v2sf_t *rowC;
 	  v2sf_t result[8];
+#else
+          v4sf_t result[4];
+#endif
 	  __vector_quad acc0;
 	  BLASLONG l = 0;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -612,7 +770,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       for (j = 0; j < (m >> 5); j++)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  IFLOAT *A1 = AO + (16 * k);
 	  __vector_quad acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7;
@@ -668,7 +828,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 16)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3;
 	  SET_ACC_ZERO4 ();
@@ -708,7 +870,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 8)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -743,7 +907,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       if (m & 4)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -791,15 +957,22 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	      t += rowA * rowB;
 	    }
 	  t = t * valpha;
+#ifdef BGEMM
+	  CO[0 * ldc]     = f32_to_bf16_scalar (BF16TOF32 (CO[0 * ldc])     + t[0]);
+	  CO[1 * ldc]     = f32_to_bf16_scalar (BF16TOF32 (CO[1 * ldc])     + t[1]);
+	  CO[0 * ldc + 1] = f32_to_bf16_scalar (BF16TOF32 (CO[0 * ldc + 1]) + t[2]);
+	  CO[1 * ldc + 1] = f32_to_bf16_scalar (BF16TOF32 (CO[1 * ldc + 1]) + t[3]);
+#else
 	  CO[0 * ldc] += t[0];
 	  CO[1 * ldc] += t[1];
 	  CO[0 * ldc + 1] += t[2];
 	  CO[1 * ldc + 1] += t[3];
+#endif
 	  CO += 2;
 	  AO += k << 1;
 	  BO += k << 1;
 	}
-      if (m & 1)
+	     if (m & 1)
 	{
 	  IFLOAT *BO = B;
 	  BLASLONG l = 0;
@@ -808,13 +981,18 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	    {
 	      v4sf_t rowA = { BF16TOF32 (AO[l]), BF16TOF32 (AO[l]), 0, 0 };
 	      v4sf_t rowB =
-		{ BF16TOF32 (BO[l << 1]), BF16TOF32 (BO[(l << 1) + 1]), 0,
-		0
+	 { BF16TOF32 (BO[l << 1]), BF16TOF32 (BO[(l << 1) + 1]), 0,
+	 0
 	      };
 	      t += rowA * rowB;
 	    }
+#ifdef BGEMM
+	  CO[0 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[0 * ldc]) + t[0] * falpha);
+	  CO[1 * ldc] = f32_to_bf16_scalar (BF16TOF32 (CO[1 * ldc]) + t[1] * falpha);
+#else
 	  CO[0 * ldc] += t[0] * alpha;
 	  CO[1 * ldc] += t[1] * alpha;
+#endif
 	  CO += 1;
 	  AO += k;
 	  BO += k << 1;
@@ -833,7 +1011,9 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
       for (j = 0; j < (m >> 4); j++)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1, acc2, acc3;
 	  SET_ACC_ZERO4 ();
@@ -859,24 +1039,37 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	      MMA (&acc2, (vec_t) rowB, MERGE_HIGH (rowA[1], vzero));
 	      MMA (&acc3, (vec_t) rowB, MERGE_LOW (rowA[1], vzero));
 	    }
+#ifdef BGEMM
+	    __builtin_mma_disassemble_acc ((void *)result, &acc0);
+	    STORE4_BF16 (&CO[0], result[0], falpha);
+	    __builtin_mma_disassemble_acc ((void *)result, &acc1);
+	    STORE4_BF16 (&CO[4], result[0], falpha);
+	    __builtin_mma_disassemble_acc ((void *)result, &acc2);
+	    STORE4_BF16 (&CO[8], result[0], falpha);
+	    __builtin_mma_disassemble_acc ((void *)result, &acc3);
+	    STORE4_BF16 (&CO[12], result[0], falpha);
+#else
 	  rowC = (v4sf_t *) &CO[0];
 	  __builtin_mma_disassemble_acc ((void *)result, &acc0);
-          rowC[0] += result[0] * alpha;
+	         rowC[0] += result[0] * alpha;
 	  __builtin_mma_disassemble_acc ((void *)result, &acc1);
-          rowC[1] += result[0] * alpha;
+	         rowC[1] += result[0] * alpha;
 	  __builtin_mma_disassemble_acc ((void *)result, &acc2);
-          rowC[2] += result[0] * alpha;
+	         rowC[2] += result[0] * alpha;
 	  __builtin_mma_disassemble_acc ((void *)result, &acc3);
-          rowC[3] += result[0] * alpha;
+	         rowC[3] += result[0] * alpha;
+#endif
 	  AO += k << 4;
 	  BO += k;
 	  CO += 16;
 	}
-      /* Loop for m >= 8. */
-      if (m & 8)
+	     /* Loop for m >= 8. */
+	     if (m & 8)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0, acc1;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -899,20 +1092,29 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	      MMA (&acc0, (vec_t) rowB, MERGE_HIGH (rowA[0], vzero));
 	      MMA (&acc1, (vec_t) rowB, MERGE_LOW (rowA[0], vzero));
 	    }
+#ifdef BGEMM
+	    __builtin_mma_disassemble_acc ((void *)result, &acc0);
+	    STORE4_BF16 (&CO[0], result[0], falpha);
+	    __builtin_mma_disassemble_acc ((void *)result, &acc1);
+	    STORE4_BF16 (&CO[4], result[0], falpha);
+#else
 	  rowC = (v4sf_t *) &CO[0];
 	  __builtin_mma_disassemble_acc ((void *)result, &acc0);
-          rowC[0] += result[0] * alpha;
+	         rowC[0] += result[0] * alpha;
 	  __builtin_mma_disassemble_acc ((void *)result, &acc1);
-          rowC[1] += result[0] * alpha;
+	         rowC[1] += result[0] * alpha;
+#endif
 	  AO += k << 3;
 	  BO += k;
 	  CO += 8;
 	}
-      /* Loop for m >= 4. */
-      if (m & 4)
+	     /* Loop for m >= 4. */
+	     if (m & 4)
 	{
 	  IFLOAT *BO = B;
+#ifndef BGEMM
 	  v4sf_t *rowC;
+#endif
 	  v4sf_t result[4];
 	  __vector_quad acc0;
 	  __builtin_mma_xxsetaccz (&acc0);
@@ -934,15 +1136,20 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 		AO[(l << 2) + 2], 0, AO[(l << 2) + 3], 0 };
 	      MMA (&acc0, (vec_t) rowB, (vec_t)(rowA));
 	    }
+#ifdef BGEMM
+	    __builtin_mma_disassemble_acc ((void *)result, &acc0);
+	    STORE4_BF16 (&CO[0], result[0], falpha);
+#else
 	  rowC = (v4sf_t *) &CO[0];
 	  __builtin_mma_disassemble_acc ((void *)result, &acc0);
-          rowC[0] += result[0] * alpha;
+	         rowC[0] += result[0] * alpha;
+#endif
 	  AO += k << 2;
 	  BO += k;
 	  CO += 4;
 	}
-      /* Loop for m >= 2. */
-      if (m & 2)
+	     /* Loop for m >= 2. */
+	     if (m & 2)
 	{
 	  IFLOAT *BO = B;
 	  BLASLONG l = 0;
@@ -951,31 +1158,40 @@ CNAME (BLASLONG m, BLASLONG n, BLASLONG k, FLOAT alpha, IFLOAT * A,
 	    {
 	      v4sf_t rowB = { BF16TOF32 (BO[l]), BF16TOF32 (BO[l]), 0, 0 };
 	      v4sf_t rowA =
-		{ BF16TOF32 (AO[l << 1]), BF16TOF32 (AO[(l << 1) + 1]), 0,
-		0
+	 { BF16TOF32 (AO[l << 1]), BF16TOF32 (AO[(l << 1) + 1]), 0,
+	 0
 	      };
 	      t += rowA * rowB;
 	    }
 	  t = t * valpha;
+#ifdef BGEMM
+	  CO[0] = f32_to_bf16_scalar (BF16TOF32 (CO[0]) + t[0]);
+	  CO[1] = f32_to_bf16_scalar (BF16TOF32 (CO[1]) + t[1]);
+#else
 	  CO[0] += t[0];
 	  CO[1] += t[1];
+#endif
 	  AO += k << 1;
 	  BO += k;
 	  CO += 2;
 	}
-      /* Loop for m = 1. */
-      if (m & 1)
+	     /* Loop for m = 1. */
+	     if (m & 1)
 	{
 	  IFLOAT *BO = B;
 	  BLASLONG l = 0;
-	  FLOAT t = 0;
+	  float t = 0;  /* float, not FLOAT: accumulate in fp32 regardless of BGEMM */
 	  for (l = 0; l < k; l++)
 	    {
 	      t += BF16TOF32 (AO[l]) * BF16TOF32 (BO[l]);
 	    }
 	  AO += k;
 	  BO += k;
+#ifdef BGEMM
+	  CO[0] = f32_to_bf16_scalar (BF16TOF32 (CO[0]) + (float)t * falpha);
+#else
 	  CO[0] += t * alpha;
+#endif
 	  CO += 1;
 	}
 
