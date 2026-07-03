@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - develop
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches:
       - develop
+    paths-ignore:
+      - 'docs/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
