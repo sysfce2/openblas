@@ -763,6 +763,17 @@ int get_node_equal (void);
 
 void goto_set_num_threads(int);
 
+/* Cooperative cancellation of in-flight operations
+ * (implemented in driver/others/openblas_cancel.c).  These symbols are
+ * exported without SYMBOLPREFIX/SYMBOLSUFFIX decoration. */
+size_t *openblas_cancel_token(void);
+void openblas_cancel(size_t *token, size_t loaded_token);
+
+/* Internal helpers for the instrumented compute drivers. */
+size_t  openblas_cancel_begin(void);
+size_t *openblas_cancel_self(void);
+int     openblas_cancel_poll(size_t *slot, size_t gen);
+
 void gotoblas_affinity_init(void);
 void gotoblas_affinity_quit(void);
 void gotoblas_dynamic_init(void);
