@@ -287,17 +287,17 @@ Please note that it is not possible to combine support for different architectur
 ### Supported OS
 
 - **GNU/Linux**
-- **MinGW or Visual Studio (CMake)/Windows**: Please read <https://github.com/OpenMathLib/OpenBLAS/docs/nstall.md#visual-studio-native-windows-abi>.
+- **MinGW or Visual Studio (CMake)/Windows**: Please read <https://github.com/OpenMathLib/OpenBLAS/blob/develop/docs/install.md#visual-studio--native-windows-abi>.
 - **Darwin/macOS/OSX/iOS**: Already supported on PPC and x86 by the original GotoBLAS, now also on ARM64 but we are not OSX/iOS experts.
-- **FreeBSD**: Supported by the community. We don't actively test the library on this OS.
+- **FreeBSD**: Supported by the community. Basic test coverage is provided by GitHub Actions.
 - **OpenBSD**: Supported by the community. We don't actively test the library on this OS.
 - **NetBSD**: Supported by the community. We don't actively test the library on this OS.
 - **DragonFly BSD**: Supported by the community. We don't actively test the library on this OS.
-- **Android**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/docs/install.md#android>.
+- **Android**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/blob/develop/docs/install.md#android>.
 - **AIX**: Supported on PPC up to POWER10 but testing is increasingly problematic due to lack of publicly available systems
 - **Haiku**: Supported by the community. We don't actively test the library on this OS.
 - **SunOS**: Supported by the community. We don't actively test the library on this OS.
-- **Cortex-M**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/docs/install.md#cortex-m>.
+- **Cortex-M**: Supported by the community. Please read <https://github.com/OpenMathLib/OpenBLAS/blob/develop/docs/install.md#cortex-m>.
 
 ## Usage
 
