@@ -6,7 +6,6 @@
 #include "common.h"
 #include <stdlib.h>
 #include <inttypes.h>
-#include <math.h>
 // #include "sme_abi.h"
 #if defined(HAVE_SME)
 
@@ -221,7 +220,7 @@ void CNAME(BLASLONG M, BLASLONG N, float alpha, float *__restrict A,
   }
 
   uint64_t vl_elms = sve_cntw(); // vl_elem = 16
-  uint64_t m_mod = ceil((double)M / (double)vl_elms) * vl_elms;
+  uint64_t m_mod = (((uint64_t)M + vl_elms - 1) / vl_elms) * vl_elms;
 
   /* Pre-process the left matrix to make it suitable for
      matrix sum of outer-product calculation

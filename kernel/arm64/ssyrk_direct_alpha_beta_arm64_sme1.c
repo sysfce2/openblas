@@ -6,7 +6,6 @@
 #include "common.h"
 #include <stdlib.h>
 #include <inttypes.h>
-#include <math.h>
 #if defined(HAVE_SME)
 
 #if defined(DYNAMIC_ARCH)
@@ -233,7 +232,7 @@ void CNAME (BLASLONG N, BLASLONG K, float alpha, float * __restrict A,\
         
         vl_elms = sve_cntw();
 
-        n_mod = ceil((double)N/(double)vl_elms) * vl_elms;
+        n_mod = (((uint64_t)N + vl_elms - 1) / vl_elms) * vl_elms;
 
         float *A_mod = (float *) malloc(n_mod*K*sizeof(float));
 	    
