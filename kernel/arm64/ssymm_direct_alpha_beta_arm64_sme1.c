@@ -45,6 +45,7 @@ static uint64_t sve_cntw() {
 
 #if defined(__ARM_FEATURE_SME) && defined(__ARM_FEATURE_LOCALLY_STREAMING) && defined(__clang__) && __clang_major__ >= 16
 
+#if defined(UPPER)
 __arm_new("za") __arm_locally_streaming
 static void ssymm_direct_sme1_preprocessLU(uint64_t nbr, uint64_t nbc,
                 const float *restrict a, float *restrict a_mod)
@@ -54,7 +55,7 @@ static void ssymm_direct_sme1_preprocessLU(uint64_t nbr, uint64_t nbc,
   const uint64_t svl = svcntw();
   uint64_t row_batch = svl;
 
-  float *restrict pSrc;
+  const float *restrict pSrc;
   float *restrict pDst;
   for (uint64_t row_idx = 0; row_idx < nbr; row_idx += row_batch)
   {
@@ -122,8 +123,10 @@ static void ssymm_direct_sme1_preprocessLU(uint64_t nbr, uint64_t nbc,
     }
   }
 }
+#endif
 
 //
+#if defined(LOWER)
 __arm_new("za") __arm_locally_streaming
 static void ssymm_direct_sme1_preprocessLL(uint64_t nbr, uint64_t nbc,
                 const float *restrict a, float *restrict a_mod)
@@ -132,7 +135,7 @@ static void ssymm_direct_sme1_preprocessLL(uint64_t nbr, uint64_t nbc,
   const uint64_t svl = svcntw();
   uint64_t row_batch = svl;
 
-  float *restrict pSrc;
+  const float *restrict pSrc;
   float *restrict pDst;
   for (uint64_t row_idx = 0; row_idx < nbr; row_idx += row_batch)
   {
@@ -200,11 +203,16 @@ static void ssymm_direct_sme1_preprocessLL(uint64_t nbr, uint64_t nbc,
     }
   }
 }
+#endif
 #else
+#if defined(UPPER)
 static void ssymm_direct_sme1_preprocessLU(uint64_t nbr, uint64_t nbc,
                 const float *restrict a, float *restrict a_mod){}
+#endif
+#if defined(LOWER)
 static void ssymm_direct_sme1_preprocessLL(uint64_t nbr, uint64_t nbc,
                 const float *restrict a, float *restrict a_mod){}
+#endif
 #endif
 
 //
