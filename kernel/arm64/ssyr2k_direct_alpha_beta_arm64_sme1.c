@@ -63,26 +63,29 @@ kernel_2x2(const float *A, float *B_T, const float *B, float *A_T, float *C, siz
 #define pg_c_1 pg_b_1
 
   svzero_za();
-  svfloat32_t beta_vec = svdup_f32(beta);
+  // beta == 0 must not read C; ZA is already initialized to zero.
+  if (beta != 0.0f) {
+    svfloat32_t beta_vec = svdup_f32(beta);
 
-  // Load C to ZA
-  for (size_t i = 0; i < MIN(svl, block_rows); i++) {
-    svfloat32_t row_c_0 = svld1(pg_c_0, &C[i * ldc]);
-    row_c_0 = svmul_x(pg, beta_vec, row_c_0);
-    svwrite_hor_za32_f32_m(/*tile*/0, /*slice*/i, pg_c_0, row_c_0);
+    // Load C to ZA
+    for (size_t i = 0; i < MIN(svl, block_rows); i++) {
+      svfloat32_t row_c_0 = svld1(pg_c_0, &C[i * ldc]);
+      row_c_0 = svmul_x(pg, beta_vec, row_c_0);
+      svwrite_hor_za32_f32_m(/*tile*/0, /*slice*/i, pg_c_0, row_c_0);
 
-    svfloat32_t row_c_1 = svld1(pg_c_1, &C[i * ldc + svl]);
-    row_c_1 = svmul_x(pg, beta_vec, row_c_1);
-    svwrite_hor_za32_f32_m(/*tile*/1, /*slice*/i, pg_c_1, row_c_1);
-  }
-  for (size_t i = svl; i < block_rows; i++) {
-    svfloat32_t row_c_0 = svld1(pg_c_0, &C[i * ldc]);
-    row_c_0 = svmul_x(pg, beta_vec, row_c_0);
-    svwrite_hor_za32_f32_m(/*tile*/2, /*slice*/i, pg_c_0, row_c_0);
+      svfloat32_t row_c_1 = svld1(pg_c_1, &C[i * ldc + svl]);
+      row_c_1 = svmul_x(pg, beta_vec, row_c_1);
+      svwrite_hor_za32_f32_m(/*tile*/1, /*slice*/i, pg_c_1, row_c_1);
+    }
+    for (size_t i = svl; i < block_rows; i++) {
+      svfloat32_t row_c_0 = svld1(pg_c_0, &C[i * ldc]);
+      row_c_0 = svmul_x(pg, beta_vec, row_c_0);
+      svwrite_hor_za32_f32_m(/*tile*/2, /*slice*/i, pg_c_0, row_c_0);
 
-    svfloat32_t row_c_1 = svld1(pg_c_1, &C[i * ldc + svl]);
-    row_c_1 = svmul_x(pg, beta_vec, row_c_1);
-    svwrite_hor_za32_f32_m(/*tile*/3, /*slice*/i, pg_c_1, row_c_1);
+      svfloat32_t row_c_1 = svld1(pg_c_1, &C[i * ldc + svl]);
+      row_c_1 = svmul_x(pg, beta_vec, row_c_1);
+      svwrite_hor_za32_f32_m(/*tile*/3, /*slice*/i, pg_c_1, row_c_1);
+    }
   }
 
   svfloat32_t alpha_vec = svdup_f32(alpha);
@@ -250,6 +253,13 @@ void CNAME (BLASLONG N, BLASLONG K, float alpha, float * __restrict A, \
             BLASLONG strideA, float * __restrict B, BLASLONG strideB, \
             float beta, float * __restrict R, BLASLONG strideR)
 {
+        if (alpha == 0.0f || K == 0) {
+                if (beta == 1.0f)
+                        return;
+                ssyr2k_direct_sme1_2VLx2VL(N, 0, &alpha, A, B, &beta, R);
+                return;
+        }
+
 #if !defined(TRANSA)
         uint64_t n_mod, vl_elms;
 
