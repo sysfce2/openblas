@@ -29,6 +29,7 @@ extern void SGEMM_PREPROCESS(uint64_t nbr, uint64_t nbc,\
                                   const float * restrict a, float *  a_mod) ;
 
 /* Function Definitions */
+#if !defined(TRANSA)
 static uint64_t sve_cntw() {
     uint64_t cnt;
     asm volatile(
@@ -38,18 +39,21 @@ static uint64_t sve_cntw() {
     );
     return cnt;
 }
+#endif
 
 #if defined(__ARM_FEATURE_SME) && defined(__ARM_FEATURE_LOCALLY_STREAMING) && defined(__clang__) && __clang_major__ >= 16
 // Outer product kernel.
 // Computes a 2SVL x 2SVL block of C, utilizing all four FP32 tiles of ZA.
 __attribute__((always_inline)) inline void
-kernel_2x2(const float *A, float *B_T, const float *B, float *A_T, float *C, size_t shared_dim,
+kernel_2x2(const float *A, const float *B_T, const float *B, const float *A_T, float *C, size_t shared_dim,
            size_t ldc, size_t block_rows, size_t block_cols, float alpha,
            float beta, uint64_t row_idx, uint64_t col_idx)
     __arm_out("za") __arm_streaming {
 
   const uint64_t svl = svcntw();
+#if defined(TRANSA)
   size_t ldb = ldc;
+#endif
   // Predicate set-up
   svbool_t pg = svptrue_b32();
   svbool_t pg_a_0 = svwhilelt_b32_u64(0, block_rows);
