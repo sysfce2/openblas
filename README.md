@@ -2,15 +2,10 @@
 
 [![Join the chat at https://gitter.im/xianyi/OpenBLAS](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/xianyi/OpenBLAS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-Cirrus CI: [![Build Status](https://api.cirrus-ci.com/github/xianyi/OpenBLAS.svg?branch=develop)](https://cirrus-ci.com/github/xianyi/OpenBLAS)
+GitHub Actions: [![Build Status](https://github.com/OpenMathLib/OpenBLAS/actions/workflows/dynamic_arch.yml/badge.svg?branch=develop)](https://github.com/OpenMathLib/OpenBLAS/actions/workflows/dynamic_arch.yml?query=branch%3Adevelop)
 
+Azure Pipelines: [![Build Status](https://dev.azure.com/xianyi/OpenBLAS/_apis/build/status/xianyi.OpenBLAS?branchName=develop)](https://dev.azure.com/xianyi/OpenBLAS/_build/latest?definitionId=1&branchName=develop)
 
-
-[![Build Status](https://dev.azure.com/xianyi/OpenBLAS/_apis/build/status/xianyi.OpenBLAS?branchName=develop)](https://dev.azure.com/xianyi/OpenBLAS/_build/latest?definitionId=1&branchName=develop)
-
-OSUOSL POWERCI [![Build Status](https://powerci.osuosl.org/buildStatus/icon?job=OpenBLAS_gh%2Fdevelop)](http://powerci.osuosl.org/job/OpenBLAS_gh/job/develop/)
-
-OSUOSL IBMZ-CI [![Build Status](http://ibmz-ci.osuosl.org/buildStatus/icon?job=OpenBLAS-Z%2Fdevelop)](http://ibmz-ci.osuosl.org/job/OpenBLAS-Z/job/develop/)
 ## Introduction
 
 OpenBLAS is an optimized BLAS (Basic Linear Algebra Subprograms) library based on GotoBLAS2 1.13 BSD version.
