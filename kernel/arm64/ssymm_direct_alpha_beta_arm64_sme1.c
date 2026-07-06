@@ -213,6 +213,13 @@ void CNAME(BLASLONG M, BLASLONG N, float alpha, float *__restrict A,
            BLASLONG strideA, float *__restrict B, BLASLONG strideB,
            float beta, float *__restrict R, BLASLONG strideR)
 {
+  if (alpha == 0.0f) {
+    if (beta == 1.0f)
+      return;
+    SGEMM_DIRECT2X2(M, 0, N, &alpha, A, B, &beta, R);
+    return;
+  }
+
   uint64_t vl_elms = sve_cntw(); // vl_elem = 16
   uint64_t m_mod = ceil((double)M / (double)vl_elms) * vl_elms;
 
