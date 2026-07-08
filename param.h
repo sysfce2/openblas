@@ -13,9 +13,9 @@ met:
       notice, this list of conditions and the following disclaimer in
       the documentation and/or other materials provided with the
       distribution.
-   3. Neither the name of the OpenBLAS project nor the names of 
-      its contributors may be used to endorse or promote products 
-      derived from this software without specific prior written 
+   3. Neither the name of the OpenBLAS project nor the names of
+      its contributors may be used to endorse or promote products
+      derived from this software without specific prior written
       permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
@@ -1996,6 +1996,25 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #else
 
+#if L3_SIZE > 0 && L3_SIZE % 33554432 == 0 && L2_SIZE == 1048576
+
+#define SGEMM_DEFAULT_P 384
+#define DGEMM_DEFAULT_P 512
+#define CGEMM_DEFAULT_P 160
+#define ZGEMM_DEFAULT_P 176
+
+#define SGEMM_DEFAULT_Q 512
+#define DGEMM_DEFAULT_Q 512
+#define CGEMM_DEFAULT_Q 480
+#define ZGEMM_DEFAULT_Q 256
+
+#define SGEMM_DEFAULT_R sgemm_r // 5936
+#define DGEMM_DEFAULT_R dgemm_r // 2288
+#define CGEMM_DEFAULT_R cgemm_r // 528
+#define ZGEMM_DEFAULT_R zgemm_r // 1520
+
+#else
+
 #define SGEMM_DEFAULT_P 640
 #define DGEMM_DEFAULT_P 192
 #define CGEMM_DEFAULT_P 384
@@ -2010,6 +2029,8 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define DGEMM_DEFAULT_R 8640
 #define CGEMM_DEFAULT_R cgemm_r
 #define ZGEMM_DEFAULT_R zgemm_r
+
+#endif
 
 #define QGEMM_DEFAULT_Q 128
 #define QGEMM_DEFAULT_P 504
@@ -2433,7 +2454,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CGEMM_DEFAULT_P 256
 #define CGEMM_DEFAULT_Q 104
 #define CGEMM_DEFAULT_R 1012
-   
+
 #define ZGEMM_DEFAULT_P 256
 #define ZGEMM_DEFAULT_Q 104
 #define ZGEMM_DEFAULT_R 1012
@@ -2518,7 +2539,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SNUMOPT		16
 #define DNUMOPT		8
 
-#define GEMM_DEFAULT_OFFSET_A 0 
+#define GEMM_DEFAULT_OFFSET_A 0
 #define GEMM_DEFAULT_OFFSET_B 65536
 
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
@@ -2572,7 +2593,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SNUMOPT		16
 #define DNUMOPT		8
 
-#define GEMM_DEFAULT_OFFSET_A 0 
+#define GEMM_DEFAULT_OFFSET_A 0
 #define GEMM_DEFAULT_OFFSET_B 65536
 #define GEMM_DEFAULT_ALIGN 0x0ffffUL
 
@@ -2635,7 +2656,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SGEMM_DEFAULT_Q 512
 #define DGEMM_DEFAULT_Q 512
 #define CGEMM_DEFAULT_Q 384
-#define ZGEMM_DEFAULT_Q 384 
+#define ZGEMM_DEFAULT_Q 384
 
 #define SGEMM_DEFAULT_R 4096
 #define DGEMM_DEFAULT_R 4096
@@ -2925,17 +2946,17 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SGEMM_DEFAULT_P	128
 #define DGEMM_DEFAULT_P	128
 #define CGEMM_DEFAULT_P 96
-#define ZGEMM_DEFAULT_P 64
+#define ZGEMM_DEFAULT_P zgemm_p
 
 #define SGEMM_DEFAULT_Q 240
 #define DGEMM_DEFAULT_Q 120
 #define CGEMM_DEFAULT_Q 120
-#define ZGEMM_DEFAULT_Q 120
+#define ZGEMM_DEFAULT_Q zgemm_q
 
 #define SGEMM_DEFAULT_R 12288
 #define DGEMM_DEFAULT_R 8192
 #define CGEMM_DEFAULT_R 4096
-#define ZGEMM_DEFAULT_R 4096
+#define ZGEMM_DEFAULT_R zgemm_r
 
 #define SYMV_P	16
 #endif
@@ -3391,7 +3412,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /*FIXME: this should be using the cache size, but there is currently no easy way to
 query that on ARM. So if getarch counted more than 8 cores we simply assume the host
-is a big desktop or server with abundant cache rather than a phone or embedded device */ 
+is a big desktop or server with abundant cache rather than a phone or embedded device */
 #if NUM_CORES > 8 || defined(TSV110) || defined(EMAG8180) || defined(VORTEX)|| defined(CORTEXX1) || defined(VORTEXM4)
   #define SGEMM_DEFAULT_P 512
   #define DGEMM_DEFAULT_P 256
@@ -3682,6 +3703,13 @@ is a big desktop or server with abundant cache rather than a phone or embedded d
 #define SBGEMM_DEFAULT_UNROLL_M 8
 #define SBGEMM_DEFAULT_UNROLL_N 8
 
+#undef SHGEMM_ALIGN_K
+#undef SHGEMM_DEFAULT_UNROLL_M
+#undef SHGEMM_DEFAULT_UNROLL_N
+#define SHGEMM_ALIGN_K 4
+#define SHGEMM_DEFAULT_UNROLL_M 8
+#define SHGEMM_DEFAULT_UNROLL_N 8
+
 #define SGEMM_DEFAULT_UNROLL_M  16
 #define SGEMM_DEFAULT_UNROLL_N  4
 
@@ -3765,7 +3793,7 @@ Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy rout
 
 /* When all BLAS3 routines are implemeted with SVE, DGEMM_DEFAULT_UNROLL_M should be "sve_vl".
 Until then, just keep it different than DGEMM_DEFAULT_UNROLL_N to keep copy routines in both directions seperated. */
-#define DGEMM_DEFAULT_UNROLL_M  2 
+#define DGEMM_DEFAULT_UNROLL_M  2
 #define DGEMM_DEFAULT_UNROLL_N  8
 
 #define DGEMM_DEFAULT_UNROLL_MN  32

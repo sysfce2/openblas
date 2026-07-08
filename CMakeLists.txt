@@ -9,7 +9,7 @@ project(OpenBLAS C ASM)
 
 set(OpenBLAS_MAJOR_VERSION 0)
 set(OpenBLAS_MINOR_VERSION 3)
-set(OpenBLAS_PATCH_VERSION 31.dev)
+set(OpenBLAS_PATCH_VERSION 33.dev)
 
 set(OpenBLAS_VERSION "${OpenBLAS_MAJOR_VERSION}.${OpenBLAS_MINOR_VERSION}.${OpenBLAS_PATCH_VERSION}")
 
@@ -58,9 +58,10 @@ else()
   set(NO_AFFINITY 1)
 endif()
 
-option(CPP_THREAD_SAFETY_TEST "Run a massively parallel DGEMM test to confirm thread safety of the library (requires OpenMP and about 1.3GB of RAM)" OFF)
+option(CPP_THREAD_SAFETY_TEST "Run massively parallel DGEMM tests to confirm thread safety of the library (requires about 1.3GB of RAM)" OFF)
+option(CPP_THREAD_SAFETY_USE_OPENMP "Use OpenMP to launch the C++ thread safety tests" ON)
 
-option(CPP_THREAD_SAFETY_GEMV "Run a massively parallel DGEMV test to confirm thread safety of the library (requires OpenMP)" OFF)
+option(CPP_THREAD_SAFETY_GEMV "Run a massively parallel DGEMV test to confirm thread safety of the library" OFF)
 option(BUILD_STATIC_LIBS "Build static library" OFF)
 option(BUILD_SHARED_LIBS "Build shared library" OFF)
 if(NOT BUILD_STATIC_LIBS AND NOT BUILD_SHARED_LIBS)
@@ -243,6 +244,38 @@ if (${DYNAMIC_ARCH})
   endforeach()
 endif ()
 
+# Work around Apple issue with "argument list too long" when linking.
+# Seen for DYNAMIC_ARCH when there are a _LOT_ of variants build, previously
+# mostly with older versions on POWERPC or Intel CPUs, but with newer ARM
+# CPUs and newer compilers this will also occur on ARM.
+#
+# This must happen before the add_library() calls, otherwise this will have
+# no effect.
+#
+# Unfortunately, while this workaround will work for shared libraries (with
+# either Ninja oder Unix Makefiles), but not for static libraries, as ar
+# does not accept response files. So for the case where we (also) build
+# static libraries we need an additional workaround, see below. (The
+# generation of the response files by CMake must still be enabled, so this
+# is required regardless.)
+if(APPLE)
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS ON)
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_LIBRARIES ON)
+  if(NOT NOFORTRAN)
+    set(CMAKE_Fortran_USE_RESPONSE_FILE_FOR_OBJECTS ON)
+    set(CMAKE_Fortran_USE_RESPONSE_FILE_FOR_LIBRARIES ON)
+    # NAG Fortran does not support the GCC-specific -x f95-cpp-input flag
+    # used in the shared library link rule below.  Override
+    # CMAKE_Fortran_CREATE_SHARED_LIBRARY early (before targets are defined)
+    # to use the C compiler link rule instead; the shared library contains
+    # only C and assembler objects so this is safe.
+    if(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+      set(CMAKE_Fortran_CREATE_SHARED_LIBRARY ${CMAKE_C_CREATE_SHARED_LIBRARY})
+    endif()
+  endif()
+  set(CMAKE_NINJA_FORCE_RESPONSE_FILE ON)
+endif()
+
 # add objects to the openblas lib
 if(NOT NO_LAPACK)
   add_library(LAPACK_OVERRIDES OBJECT ${LA_SOURCES})
@@ -308,20 +341,22 @@ if (USE_OPENMP)
   endif()
 endif()
 
-# Fix "Argument list too long" for macOS - mostly seen with older OS versions on POWERPC or Intel CPUs 
-if(APPLE)
-  # Use response files
-  set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
+# Second part of "Argument list too long" fix when static libraries are
+# built. See above for details.
+if(APPLE AND BUILD_STATIC_LIBS)
   # Always build static library first
-  if(BUILD_STATIC_LIBS)
-    set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
+  set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
+  # Handle differences in how many response files are generated and/or where
+  # they are stored for Ninja / Unix Makefiles.
+  if("${CMAKE_GENERATOR}" MATCHES "Ninja")
+    set(CREATE_STATIC_LIBRARY_COMMAND
+      "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/openblas_static.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
+      "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   else()
-    add_library(${OpenBLAS_LIBNAME}_static STATIC ${TARGET_OBJS} ${OpenBLAS_DEF_FILE})
-    set(STATIC_PATH "lib${OpenBLAS_LIBNAME}.a")
+    set(CREATE_STATIC_LIBRARY_COMMAND
+      "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/${OpenBLAS_LIBNAME}_static.dir/objects*.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
+      "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   endif()
-  set(CREATE_STATIC_LIBRARY_COMMAND
-    "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/${OpenBLAS_LIBNAME}_static.dir/objects*.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
-    "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   if(BUILD_SHARED_LIBS)
     add_dependencies(${OpenBLAS_LIBNAME}_shared ${OpenBLAS_LIBNAME}_static)
     set(SHARED_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libopenblas.${OpenBLAS_MAJOR_VERSION}.${OpenBLAS_MINOR_VERSION}.dylib")
@@ -332,12 +367,34 @@ if(APPLE)
     set(OMP_LIB "")
   endif()
   if(NOT NOFORTRAN)
-    set(CMAKE_Fortran_USE_RESPONSE_FILE_FOR_OBJECTS 1)
     set(CMAKE_Fortran_CREATE_STATIC_LIBRARY ${CREATE_STATIC_LIBRARY_COMMAND})
     if(BUILD_SHARED_LIBS)
-      set(CMAKE_Fortran_CREATE_SHARED_LIBRARY
-	"sh -c 'echo \"\" | ${CMAKE_Fortran_COMPILER} -o dummy.o -c -x f95-cpp-input - '"
-	"sh -c '${CMAKE_Fortran_COMPILER} -fpic -shared -Wl,-all_load -Wl,-force_load,${STATIC_PATH} dummy.o -o ${SHARED_PATH} ${OMP_LIB}'")
+      if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+        set(CMAKE_Fortran_CREATE_SHARED_LIBRARY
+          "sh -c 'echo \"\" | ${CMAKE_Fortran_COMPILER} -o dummy.o -c -x f95-cpp-input - '"
+          "sh -c '${CMAKE_Fortran_COMPILER} -fpic -shared -Wl,-all_load -Wl,-force_load,${STATIC_PATH} dummy.o -o ${SHARED_PATH} ${OMP_LIB}'")
+      elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
+        # NAG does not support -x f95-cpp-input, and macOS needs -dynamiclib
+        # rather than -Wl,-shared.  Use the C compiler as the linker driver
+        # and add the NAG Fortran runtime so NAGf90_* symbols resolve.
+        # Locate the NAG Fortran runtime (libf<XY>rts) without hardcoding the
+        # version digits: NAG 7.1 ships libf71rts, 7.2 ships libf72rts, etc.
+        get_filename_component(_NAG_FC_DIR "${CMAKE_Fortran_COMPILER}" DIRECTORY)
+        set(_NAG_RTS_DIR "${_NAG_FC_DIR}/../lib/NAG_Fortran")
+        file(GLOB _NAG_RTS_CANDIDATES
+             "${_NAG_RTS_DIR}/libf*rts.dylib"
+             "${_NAG_RTS_DIR}/libf*rts.a")
+        if(_NAG_RTS_CANDIDATES)
+          list(GET _NAG_RTS_CANDIDATES 0 _NAG_RTS_LIB)
+          get_filename_component(_NAG_RTS_NAME "${_NAG_RTS_LIB}" NAME_WE)
+          string(REGEX REPLACE "^lib" "" _NAG_RTS_LIBNAME "${_NAG_RTS_NAME}")
+          set(_NAG_RTS_FLAGS "-L${_NAG_RTS_DIR} -l${_NAG_RTS_LIBNAME}")
+        else()
+          set(_NAG_RTS_FLAGS "")
+        endif()
+        set(CMAKE_Fortran_CREATE_SHARED_LIBRARY
+          "sh -c '${CMAKE_C_COMPILER} -dynamiclib -Wl,-all_load -Wl,-force_load,${STATIC_PATH} -o ${SHARED_PATH} ${OMP_LIB} ${_NAG_RTS_FLAGS}'")
+      endif()
     endif()
   else()
     set(CMAKE_C_CREATE_STATIC_LIBRARY ${CREATE_STATIC_LIBRARY_COMMAND})
@@ -764,4 +821,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PN}ConfigVersion.cmake
 install(EXPORT "${PN}${SUFFIX64}Targets"
         NAMESPACE "${PN}${SUFFIX64}::"
         DESTINATION ${CMAKECONFIG_INSTALL_DIR})
-

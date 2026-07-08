@@ -51,7 +51,7 @@ extern void goto_set_num_threads(int nthreads);
 #undef TIMING_DEBUG
 
 /* Global Parameter */
-extern int blas_cpu_number;
+extern _Atomic int blas_cpu_number;
 extern int blas_num_threads;
 extern int blas_omp_linked;
 
@@ -190,6 +190,9 @@ int exec_blas(BLASLONG num_cpu, blas_param_t *param, void *buffer);
 #endif
 
 #ifndef ASSEMBLER
+
+void blas_level3_thread_enter(void);
+void blas_level3_thread_leave(void);
 
 int blas_level1_thread(int mode, BLASLONG m, BLASLONG n, BLASLONG k, void *alpha,
 		       void *a, BLASLONG lda,

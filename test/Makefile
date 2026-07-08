@@ -277,6 +277,10 @@ ifeq ($(BUILD_BFLOAT16),1)
 	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 ./test_bgemm$(EXE) > BBLAT3.SUMM
 	@$(GREP) -q FATAL BBLAT3.SUMM && cat BBLAT3.SUMM || exit 0
 endif
+ifeq ($(BUILD_HFLOAT16),1)
+	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 ./test_shgemm > SHBLAT3.SUMM
+	@$(GREP) -q FATAL SHBLAT3.SUMM && cat SHBLAT3.SUMM || exit 0
+endif
 ifeq ($(BUILD_SINGLE),1)
 	OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 ./sblat3$(EXE) < ./sblat3.dat
 	@$(GREP) -q FATAL SBLAT3.SUMM && cat SBLAT3.SUMM || exit 0
@@ -302,6 +306,11 @@ ifeq ($(BUILD_BFLOAT16),1)
 	OMP_NUM_THREADS=2 ./test_bgemm$(EXE) > BBLAT3.SUMM
 	@$(GREP) -q FATAL BBLAT3.SUMM && cat BBLAT3.SUMM || exit 0
 endif
+ifeq ($(BUILD_HFLOAT16),1)
+	OMP_NUM_THREADS=2 ./test_shgemm > SHBLAT3.SUMM
+	@$(GREP) -q FATAL SHBLAT3.SUMM && cat SHBLAT3.SUMM || exit 0
+endif
+
 ifeq ($(BUILD_SINGLE),1)
 	OMP_NUM_THREADS=2 ./sblat3$(EXE) < ./sblat3.dat
 	@$(GREP) -q FATAL SBLAT3.SUMM && cat SBLAT3.SUMM || exit 0
@@ -324,6 +333,10 @@ ifeq ($(BUILD_BFLOAT16),1)
 	@$(GREP) -q FATAL SBBLAT3.SUMM && cat SBBLAT3.SUMM || exit 0
 	OPENBLAS_NUM_THREADS=2 ./test_bgemm$(EXE) > BBLAT3.SUMM
 	@$(GREP) -q FATAL BBLAT3.SUMM && cat BBLAT3.SUMM || exit 0
+endif
+ifeq ($(BUILD_HFLOAT16),1)
+	OPENBLAS_NUM_THREADS=2 ./test_shgemm > SHBLAT3.SUMM
+	@$(GREP) -q FATAL SHBLAT3.SUMM && cat SHBLAT3.SUMM || exit 0
 endif
 ifeq ($(BUILD_SINGLE),1)
 	OPENBLAS_NUM_THREADS=2 ./sblat3$(EXE) < ./sblat3.dat
@@ -460,24 +473,24 @@ endif
 
 ifeq ($(BUILD_BFLOAT16),1)
 test_bgemm$(EXE) : compare_sgemm_bgemm.c test_helpers.h ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -DIBFLOAT16 -DOBFLOAT16 -o $@ compare_sgemm_bgemm.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -DIBFLOAT16 -DOBFLOAT16 -o test_bgemm compare_sgemm_bgemm.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 
 test_bgemv$(EXE) : compare_sgemv_bgemv.c ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -DIBFLOAT16 -DOBFLOAT16 -o $@ compare_sgemv_bgemv.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -DIBFLOAT16 -DOBFLOAT16 -o test_bgemv compare_sgemv_bgemv.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 
 test_sbgemm$(EXE) : compare_sgemm_sbgemm.c test_helpers.h ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -DIBFLOAT16 -o $@ compare_sgemm_sbgemm.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -DIBFLOAT16 -o test_sbgemm compare_sgemm_sbgemm.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 
 test_sbgemv$(EXE) : compare_sgemv_sbgemv.c ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -DIBFLOAT16 -o $@ compare_sgemv_sbgemv.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -DIBFLOAT16 -o test_sbgemv compare_sgemv_sbgemv.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 endif
 
 ifeq ($(BUILD_HFLOAT16),1)
 test_shgemm$(EXE) : compare_sgemm_shgemm.c test_helpers.h ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -DIHFLOAT16 -o $@ compare_sgemm_shgemm.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -DIHFLOAT16 -o test_shgemm compare_sgemm_shgemm.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 
 test_shgemv$(EXE) : compare_sgemv_shgemv.c ../$(LIBNAME)
-	$(CC) $(CLDFLAGS) -o $@ compare_sgemv_shgemv.c ../$(LIBNAME) $(EXTRALIB) $(CEXTRALIB)
+	$(CC) $(CLDFLAGS) -o test_shgemv compare_sgemv_shgemv.c ../$(LIBNAME) $(EXTRALIB) $(FEXTRALIB) $(CEXTRALIB)
 endif
 
 
