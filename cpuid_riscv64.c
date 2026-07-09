@@ -75,13 +75,15 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define CPU_x280            2
 #define CPU_RISCV64_ZVL256B 3
 #define CPU_RISCV64_ZVL128B 4
+#define CPU_U74             5
 
 static char *cpuname[] = {
   "RISCV64_GENERIC",
   "C910V",
   "x280",
   "CPU_RISCV64_ZVL256B",
-  "CPU_RISCV64_ZVL128B"
+  "CPU_RISCV64_ZVL128B",
+  "U74"
 };
 
 static char *cpuname_lower[] = {
@@ -89,7 +91,8 @@ static char *cpuname_lower[] = {
   "c910v",
   "x280",
   "riscv64_zvl256b",
-  "riscv64_zvl128b"
+  "riscv64_zvl128b",
+  "u74"
 };
 
 int detect(void){
