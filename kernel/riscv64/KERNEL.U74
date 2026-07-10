@@ -109,7 +109,7 @@ SGEMMOTCOPY    =  ../generic/gemm_tcopy_4.c
 SGEMMONCOPYOBJ =  sgemm_oncopy$(TSUFFIX).$(SUFFIX)
 SGEMMOTCOPYOBJ =  sgemm_otcopy$(TSUFFIX).$(SUFFIX)
 
-DGEMMKERNEL    =  ../generic/gemmkernel_4x4.c
+DGEMMKERNEL    =  ../generic/gemmkernel_4x4_u74.c
 DGEMMONCOPY    = ../generic/gemm_ncopy_4.c
 DGEMMOTCOPY    = ../generic/gemm_tcopy_4.c
 DGEMMONCOPYOBJ = dgemm_oncopy$(TSUFFIX).$(SUFFIX)
