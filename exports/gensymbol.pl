@@ -4054,9 +4054,11 @@ if ($ARGV[0] eq "win2k"){
 
 
     foreach $objs (@no_underscore_objs) {
+        next if $objs eq "openblas_set_xerbla";
         print "\t",$symbolprefix,$objs,$symbolsuffix,"=$objs","  \@", $count, "\n";
         $count ++;
     }
+    print "\t",$symbolprefix,"openblas_set_xerbla",$symbolsuffix,"=openblas_set_xerbla  \@",$count,"\n";
 
     exit(0);
 }
