@@ -54,9 +54,10 @@
  * double-buffering (P/Q ping-pong) and load-before-FMA issue ordering that
  * reaches the U74 FP-pipe peak (~16.5 cycles per 16 fmadd.d).  All other
  * shapes, odd bk, and the TRMM builds fall back to the portable C 4x4 code
- * below.  Measured ~+20% single-core DGEMM and +4% four-core HPL over the C
- * kernel; validated against the full BLAS Level-3 suite (DGEMM 17,496 calls,
- * 0 failures) and HPL (residual PASSED).
+ * below.  Measured ~+20% single-core DGEMM over the C kernel; four-core HPL vs
+ * the tuned C kernel is +4% at N=10000 and +10.7% at N=27456 (5.99 GFLOPS,
+ * ~50% of the 12 GF peak - the best clean figure).  Validated against the full
+ * BLAS Level-3 suite (DGEMM 17,496 calls, 0 failures) and HPL (residual PASSED).
  */
 
 #include "common.h"
