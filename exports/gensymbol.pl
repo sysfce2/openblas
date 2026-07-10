@@ -178,6 +178,7 @@
     openblas_get_config,
     openblas_get_corename,
     openblas_set_threads_callback_function,
+    openblas_set_xerbla,
 );
 
 @misc_underscore_objs = (
