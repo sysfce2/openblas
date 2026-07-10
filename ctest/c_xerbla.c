@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <string.h>
@@ -101,4 +102,8 @@ static void cblas_test_xerbla(const char *srname, const blasint *info,
 
 void cblas_test_set_xerbla(void) {
    openblas_set_xerbla(cblas_test_xerbla);
+}
+
+void cblas_test_fail(void) {
+   exit(EXIT_FAILURE);
 }
