@@ -30,6 +30,8 @@
 #define  INVALID       -1
 #define  UNDEFINED     -1
 
+void cblas_test_set_xerbla(void);
+
 typedef struct { float real; float imag; } CBLAS_TEST_COMPLEX;
 typedef struct { double real; double imag; } CBLAS_TEST_ZOMPLEX;
 
