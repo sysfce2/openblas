@@ -31,6 +31,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 **********************************************************************************/
 
+#include <limits.h>
 #include "utest/openblas_utest.h"
 #include "common.h"
 
@@ -41,6 +42,7 @@ static char *rout;
 static void test_xerbla(const char *srname, const blasint *vinfo, size_t length)
 {
    blasint info = *vinfo;
+   int name_length = length > (size_t)INT_MAX ? INT_MAX : (int)length;
 
    if (rout != NULL &&
        (length != strlen(rout) || memcmp(rout, srname, length) != 0)) {
@@ -50,8 +52,8 @@ static void test_xerbla(const char *srname, const blasint *vinfo, size_t length)
    }
 
    if (info != _info){
-      printf("***** XERBLA WAS CALLED WITH INFO = %lld INSTEAD OF %d in %s *******\n",
-             (long long)info, _info, srname);
+      printf("***** XERBLA WAS CALLED WITH INFO = %lld INSTEAD OF %d in %.*s *******\n",
+             (long long)info, _info, name_length, srname == NULL ? "" : srname);
       lerr = TRUE;
       ok = FALSE;
    } else lerr = FALSE;
