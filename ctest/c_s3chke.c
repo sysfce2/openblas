@@ -1257,6 +1257,8 @@ void F77_s3chke(char *rout) {
    }
    if (cblas_ok == TRUE )
        printf(" %-12s PASSED THE TESTS OF ERROR-EXITS\n", cblas_rout);
-   else
+   else {
        printf("***** %s FAILED THE TESTS OF ERROR-EXITS *******\n",cblas_rout);
+       cblas_test_fail();
+   }
 }
