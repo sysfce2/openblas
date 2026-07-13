@@ -62,7 +62,7 @@
 
 #include "common.h"
 
-#include "conversion_macros.h"
+#include "../generic/conversion_macros.h"
 
 #ifdef BGEMM
 #define C_TO_F32 TO_F32
