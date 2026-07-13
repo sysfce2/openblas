@@ -59,6 +59,20 @@ typedef void (*openblas_dojob_callback)(int thread_num, void *jobdata, int dojob
 typedef void (*openblas_threads_callback)(int sync, openblas_dojob_callback dojob, int numjobs, size_t jobdata_elsize, void *jobdata, int dojob_data);
 void openblas_set_threads_callback_function(openblas_threads_callback callback);
 
+/* Replace the XERBLA handler for this OpenBLAS instance and return the
+ * previous handler. Passing NULL restores the default. Callbacks may run
+ * concurrently and must be thread-safe. The name and info pointers are valid
+ * only during the callback; name spans name_length bytes and need not be
+ * NUL-terminated. Replacement is thread-safe but does not wait for in-flight
+ * calls, so the previous handler must remain loaded until they complete. */
+#ifndef OPENBLAS_XERBLA_HANDLER_DEFINED
+#define OPENBLAS_XERBLA_HANDLER_DEFINED
+typedef void (*openblas_xerbla_handler)(const char *name,
+                                        const blasint *info,
+                                        size_t name_length);
+#endif
+openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
+
 #ifdef OPENBLAS_OS_LINUX
 /* Sets thread affinity for OpenBLAS threads. `thread_idx` is in [0, openblas_get_num_threads()-1]. */
 int openblas_setaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set);
