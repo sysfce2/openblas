@@ -3265,10 +3265,27 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define SHGEMM_DEFAULT_P 128
 #undef SBGEMM_DEFAULT_P
 #define SBGEMM_DEFAULT_P 128
-#define SGEMM_DEFAULT_P 128
-#define DGEMM_DEFAULT_P 64
-#define CGEMM_DEFAULT_P 64
-#define ZGEMM_DEFAULT_P 64
+/* Base packed-A (P) blocking for this core. On static builds blas_set_parameter()
+   scales P from the L2 cache detected at runtime, relative to RISCV_L2_REFERENCE_KB
+   (the L2 size these bases target); Q and R keep their param.h defaults. A cache
+   equal to the reference reproduces the stock blocking. DYNAMIC_ARCH uses the
+   literals directly (kernel/setparam-ref.c fills the gotoblas table from them). */
+#define RISCV_L2_REFERENCE_KB 512
+#define SGEMM_DEFAULT_P_BASE 128
+#define DGEMM_DEFAULT_P_BASE 64
+#define CGEMM_DEFAULT_P_BASE 64
+#define ZGEMM_DEFAULT_P_BASE 64
+#if defined(DYNAMIC_ARCH)
+#define SGEMM_DEFAULT_P SGEMM_DEFAULT_P_BASE
+#define DGEMM_DEFAULT_P DGEMM_DEFAULT_P_BASE
+#define CGEMM_DEFAULT_P CGEMM_DEFAULT_P_BASE
+#define ZGEMM_DEFAULT_P ZGEMM_DEFAULT_P_BASE
+#else
+#define SGEMM_DEFAULT_P sgemm_p
+#define DGEMM_DEFAULT_P dgemm_p
+#define CGEMM_DEFAULT_P cgemm_p
+#define ZGEMM_DEFAULT_P zgemm_p
+#endif
 
 #undef SHGEMM_DEFAULT_Q
 #define SHGEMM_DEFAULT_Q 128
