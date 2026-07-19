@@ -229,7 +229,7 @@ jobs:
       mkdir build
       cd build
       cmake -DTARGET=CORE2 -DUSE_OPENMP=1 -DINTERFACE64=1 -DDYNAMIC_ARCH=1 -DDYNAMIC_LIST='NEHALEM;HASWELL;SKYLAKEX' -DCMAKE_C_COMPILER=/usr/local/opt/llvm/bin/clang -DNOFORTRAN=1 -DNO_AVX512=1 ..
-      make
+      cmake --build . --parallel "$(sysctl -n hw.logicalcpu)"
       ctest
       
 - job: OSX_dynarch_cmake
