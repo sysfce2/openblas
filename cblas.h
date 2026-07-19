@@ -73,6 +73,27 @@ typedef void (*openblas_xerbla_handler)(const char *name,
 #endif
 openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
 
+/* Cooperative cancellation of in-flight operations.
+ *
+ * Every thread owns a pointer-sized generation slot;
+ * openblas_cancel_token() returns its (stable) address for the calling
+ * thread.  Supported compute drivers (currently the level-3 GEMM drivers)
+ * advance the slot to a fresh even generation at operation entry on the
+ * issuing thread and poll it during the computation.  To cancel the
+ * operation in flight on a thread, load that thread's slot value, verify
+ * the operation you mean to cancel is still the current one, and call
+ * openblas_cancel(token, loaded_value): the cancel bit (bit 0) is set iff
+ * the slot still holds the loaded value, so stale requests cannot affect
+ * later operations.  A cancelled operation leaves its output in an
+ * unspecified, partially-updated state; the caller must discard the
+ * result.  The library itself stays consistent and can service further
+ * calls.  openblas_cancel_token() may return NULL if per-thread state
+ * cannot be allocated; cancellation is then unavailable on that thread
+ * (openblas_cancel(NULL, ...) is a harmless no-op).  These symbols are
+ * exported without any symbol prefix/suffix decoration. */
+size_t *openblas_cancel_token(void);
+void openblas_cancel(size_t *token, size_t loaded_token);
+
 #ifdef OPENBLAS_OS_LINUX
 /* Sets thread affinity for OpenBLAS threads. `thread_idx` is in [0, openblas_get_num_threads()-1]. */
 int openblas_setaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set);
