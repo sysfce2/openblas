@@ -41,12 +41,18 @@
 #define CACHE_LINE_SIZE 8
 #endif
 
+#define DIVIDE_RATE_MAX 2
+
 #ifndef DIVIDE_RATE
 #define DIVIDE_RATE 2
 #endif
 
-#ifndef GEMM_PREFERED_SIZE
-#define GEMM_PREFERED_SIZE 1
+#ifdef DYNAMIC_ARCH
+#undef GEMM_PREFERRED_SIZE
+#define GEMM_PREFERRED_SIZE gotoblas->preferred_size
+#endif
+#ifndef GEMM_PREFERRED_SIZE
+#define GEMM_PREFERRED_SIZE 1
 #endif
 
 //The array of job_t may overflow the stack.
@@ -92,8 +98,12 @@
 #endif
 
 typedef struct {
+#ifdef HAVE_C11
+  _Atomic
+#else
   volatile
-   BLASLONG working[MAX_CPU_NUMBER][CACHE_LINE_SIZE * DIVIDE_RATE];
+#endif
+   BLASLONG working[MAX_CPU_NUMBER][CACHE_LINE_SIZE * DIVIDE_RATE_MAX];
 } job_t;
 
 
@@ -234,7 +244,7 @@ typedef struct {
 
 static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, IFLOAT *sa, IFLOAT *sb, BLASLONG mypos){
 
-  IFLOAT *buffer[DIVIDE_RATE];
+  IFLOAT *buffer[DIVIDE_RATE_MAX];
 
   BLASLONG k, lda, ldb, ldc;
   BLASLONG m_from, m_to, n_from, n_to;
@@ -243,6 +253,17 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
   IFLOAT *a, *b;
   FLOAT *c;
   job_t *job = (job_t *)args -> common;
+
+  /* Cancellation token forwarded (by gemm_driver) from the thread that
+   * issued this operation, or NULL.  Once cancellation is observed the
+   * remaining compute (copy/kernel calls) is skipped, but every
+   * synchronization point - buffer publication and flag clearing - is
+   * still executed, so sibling threads never deadlock and the operation
+   * finishes quickly with C left in an unspecified, partially-updated
+   * state. */
+  size_t *cancel_slot = args -> cancel_slot;
+  size_t cancel_gen = args -> cancel_gen;
+  int cancelled = 0;
 
   BLASLONG nthreads_m;
   BLASLONG mypos_m, mypos_n;
@@ -308,8 +329,10 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
     n_to   = range_n[mypos + 1];
   }
 
-  /* Multiply C by beta if needed */
-  if (beta) {
+  cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
+
+  /* Multiply C by beta if needed (skipped when cancelled) */
+  if (beta && !cancelled) {
 #ifndef COMPLEX
     if (beta[0] != ONE)
 #else
@@ -335,6 +358,9 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 
   /* Iterate through steps of k */
   for(ls = 0; ls < k; ls += min_l){
+
+    /* Poll for cancellation at block granularity */
+    if (!cancelled) cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
 
     /* Determine step size in k */
     min_l = k - ls;
@@ -365,10 +391,12 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
       }
     }
 
-    /* Copy local region of A into workspace */
-    START_RPCC();
-    ICOPY_OPERATION(min_l, min_i, a, lda, ls, m_from, sa);
-    STOP_RPCC(copy_A);
+    /* Copy local region of A into workspace (skipped when cancelled) */
+    if (!cancelled) {
+      START_RPCC();
+      ICOPY_OPERATION(min_l, min_i, a, lda, ls, m_from, sa);
+      STOP_RPCC(copy_A);
+    }
 
     /* Copy local region of B into workspace and apply kernel */
     div_n = (n_to - n_from + divide_rate - 1) / divide_rate;
@@ -383,9 +411,13 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 
 #if defined(FUSED_GEMM) && !defined(TIMING)
 
-      /* Fused operation to copy region of B into workspace and apply kernel */
-      FUSED_KERNEL_OPERATION(min_i, MIN(n_to, js + div_n) - js, min_l, alpha,
-			     sa, buffer[bufferside], b, ldb, c, ldc, m_from, js, ls);
+      /* Fused operation to copy region of B into workspace and apply kernel
+       * (skipped when cancelled; the buffer is still published below so
+       * sibling threads do not stall) */
+      if (!cancelled) cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
+      if (!cancelled)
+        FUSED_KERNEL_OPERATION(min_i, MIN(n_to, js + div_n) - js, min_l, alpha,
+			       sa, buffer[bufferside], b, ldb, c, ldc, m_from, js, ls);
 
 #else
 
@@ -404,6 +436,12 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 */
             if (min_jj > GEMM_UNROLL_N) min_jj = GEMM_UNROLL_N;
 #endif
+        /* Poll for cancellation between blocks; when cancelled, skip the
+         * copy and kernel but keep iterating so the buffer is still
+         * published below and sibling threads do not stall */
+	if (!cancelled) cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
+	if (!cancelled) {
+
         /* Copy part of local region of B into workspace */
 	START_RPCC();
 	OCOPY_OPERATION(min_l, min_jj, b, ldb, ls, jjs,
@@ -420,6 +458,8 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 #ifdef TIMING
         ops += 2 * min_i * min_jj * min_l;
 #endif
+
+	}
 
       }
 #endif
@@ -450,7 +490,10 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 	  STOP_RPCC(waiting2);
 	  MB;
 
-          /* Apply kernel with local region of A and part of other region of B */
+          /* Apply kernel with local region of A and part of other region of B
+           * (skipped when cancelled; the flag is still cleared below) */
+	  if (!cancelled) cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
+	  if (!cancelled) {
 	  START_RPCC();
 	  KERNEL_OPERATION(min_i, MIN(range_n[current + 1]  - js,  div_n), min_l, alpha,
 			   sa, (IFLOAT *)job[current].working[mypos][CACHE_LINE_SIZE * bufferside],
@@ -460,6 +503,7 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 #ifdef TIMING
 	  ops += 2 * min_i * MIN(range_n[current + 1]  - js,  div_n) * min_l;
 #endif
+	  }
 	}
 
         /* Clear synchronization flag if this thread is done with other region of B */
@@ -470,9 +514,12 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
       }
     } while (current != mypos);
 
-    /* Iterate through steps of m 
+    /* Iterate through steps of m
      * Note: First step has already been finished */
     for(is = m_from + min_i; is < m_to; is += min_i){
+      /* Poll for cancellation between blocks */
+      if (!cancelled) cancelled = openblas_cancel_poll(cancel_slot, cancel_gen);
+
       min_i = m_to - is;
       if (min_i >= GEMM_P * 2) {
 	min_i = GEMM_P;
@@ -481,10 +528,12 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 	  min_i = (((min_i + 1) / 2 + GEMM_UNROLL_M - 1)/GEMM_UNROLL_M) * GEMM_UNROLL_M;
 	}
 
-      /* Copy local region of A into workspace */
-      START_RPCC();
-      ICOPY_OPERATION(min_l, min_i, a, lda, ls, is, sa);
-      STOP_RPCC(copy_A);
+      /* Copy local region of A into workspace (skipped when cancelled) */
+      if (!cancelled) {
+	START_RPCC();
+	ICOPY_OPERATION(min_l, min_i, a, lda, ls, is, sa);
+	STOP_RPCC(copy_A);
+      }
 
       /* Get regions of B and apply kernel */
       current = mypos;
@@ -494,17 +543,20 @@ static int inner_thread(blas_arg_t *args, BLASLONG *range_m, BLASLONG *range_n, 
 	div_n = (range_n[current + 1]  - range_n[current] + divide_rate - 1) / divide_rate;
 	for (js = range_n[current], bufferside = 0; js < range_n[current + 1]; js += div_n, bufferside ++) {
 
-          /* Apply kernel with local region of A and part of region of B */
+          /* Apply kernel with local region of A and part of region of B
+           * (skipped when cancelled; the flag is still cleared below) */
+	  if (!cancelled) {
 	  START_RPCC();
 	  KERNEL_OPERATION(min_i, MIN(range_n[current + 1] - js, div_n), min_l, alpha,
 			   sa, (IFLOAT *)job[current].working[mypos][CACHE_LINE_SIZE * bufferside],
 			   c, ldc, is, js);
           STOP_RPCC(kernel);
-          
+
 #ifdef TIMING
           ops += 2 * min_i * MIN(range_n[current + 1]  - js, div_n) * min_l;
 #endif
-          
+	  }
+
           /* Clear synchronization flag if this thread is done with region of B */
           if (is + min_i >= m_to) {
             WMB;
@@ -563,33 +615,6 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
 		       *range_n, IFLOAT *sa, IFLOAT *sb,
                        BLASLONG nthreads_m, BLASLONG nthreads_n) {
 
-#ifdef USE_OPENMP
-  static omp_lock_t level3_lock, critical_section_lock;
-  static volatile BLASULONG init_lock = 0, omp_lock_initialized = 0,
-                  parallel_section_left = MAX_PARALLEL_NUMBER;
-
-  // Lock initialization; Todo : Maybe this part can be moved to blas_init() in blas_server_omp.c
-  while(omp_lock_initialized == 0)
-  {
-    blas_lock(&init_lock);
-    {
-      if(omp_lock_initialized == 0)
-      {
-        omp_init_lock(&level3_lock);
-        omp_init_lock(&critical_section_lock);
-        omp_lock_initialized = 1;
-        WMB;
-      }
-    blas_unlock(&init_lock);
-    }
-  }
-#elif defined(OS_WINDOWS)
-  CRITICAL_SECTION level3_lock;
-  InitializeCriticalSection((PCRITICAL_SECTION)&level3_lock);
-#else
-  static pthread_mutex_t  level3_lock    = PTHREAD_MUTEX_INITIALIZER;
-#endif
-
   blas_arg_t newarg;
 
 #ifndef USE_ALLOC_HEAP
@@ -635,29 +660,7 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
 #endif
 #endif
 
-#ifdef USE_OPENMP
-  omp_set_lock(&level3_lock);
-  omp_set_lock(&critical_section_lock);
-
-  parallel_section_left--;
-  
-  /*
-    How OpenMP locks works with NUM_PARALLEL
-  1) parallel_section_left  = Number of available concurrent executions of OpenBLAS - Number of currently executing OpenBLAS executions
-  2) level3_lock is acting like a master lock or barrier which stops OpenBLAS calls when all the parallel_section are currently busy executing other OpenBLAS calls
-  3) critical_section_lock is used for updating variables shared between threads executing OpenBLAS calls concurrently and for unlocking of master lock whenever required
-  4) Unlock master lock only when we have not already exhausted all the parallel_sections and allow another thread with a OpenBLAS call to enter
-  */
-  if(parallel_section_left != 0) 
-    omp_unset_lock(&level3_lock);
-
-  omp_unset_lock(&critical_section_lock);
-
-#elif defined(OS_WINDOWS)
-  EnterCriticalSection((PCRITICAL_SECTION)&level3_lock);
-#else
-  pthread_mutex_lock(&level3_lock);
-#endif
+  blas_level3_thread_enter();
 
 #ifdef USE_ALLOC_HEAP
   /* Dynamically allocate workspace */
@@ -682,6 +685,12 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
   newarg.beta     = args -> beta;
   newarg.nthreads = args -> nthreads;
   newarg.common   = (void *)job;
+
+  /* Begin a cancellable generation on this (the calling, i.e. issuing)
+   * thread and forward it to the worker threads through the job
+   * arguments. */
+  newarg.cancel_gen = openblas_cancel_begin();
+  newarg.cancel_slot = openblas_cancel_self();
 #ifdef PARAMTEST
   newarg.gemm_p   = args -> gemm_p;
   newarg.gemm_q   = args -> gemm_q;
@@ -707,7 +716,7 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
   while (m > 0){
     width = blas_quickdivide(m + nthreads_m - num_parts - 1, nthreads_m - num_parts);
 
-    width = round_up(m, width, GEMM_PREFERED_SIZE);
+    width = round_up(m, width, GEMM_PREFERRED_SIZE);
 
     m -= width;
 
@@ -758,7 +767,7 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
         if (width < switch_ratio) {
           width = switch_ratio;
         }
-        width = round_up(width_n, width, GEMM_PREFERED_SIZE);
+        width = round_up(width_n, width, GEMM_PREFERRED_SIZE);
 
         width_n -= width;
         if (width_n < 0) {
@@ -785,31 +794,18 @@ static int gemm_driver(blas_arg_t *args, BLASLONG *range_m, BLASLONG
     WMB;
     /* Execute parallel computation */
     exec_blas(nthreads, queue);
+
+    /* Skip the remaining column blocks once this operation has been
+     * cancelled.  Each exec_blas() round is a full barrier, so bailing
+     * out between rounds leaves the library in a consistent state. */
+    if (openblas_cancel_poll(newarg.cancel_slot, newarg.cancel_gen)) break;
   }
 
 #ifdef USE_ALLOC_HEAP
   free(job);
 #endif
 
-#ifdef USE_OPENMP
-  omp_set_lock(&critical_section_lock);
-  parallel_section_left++;
-
-  /*
-  Unlock master lock only when all the parallel_sections are already exhausted and one of the thread has completed its OpenBLAS call
-  otherwise just increment the parallel_section_left
-  The master lock is only locked when we have exhausted all the parallel_sections, So only unlock it then and otherwise just increment the count
-  */
-  if(parallel_section_left == 1)
-    omp_unset_lock(&level3_lock);
-  
-  omp_unset_lock(&critical_section_lock);
-
-#elif defined(OS_WINDOWS)
-  LeaveCriticalSection((PCRITICAL_SECTION)&level3_lock);
-#else
-  pthread_mutex_unlock(&level3_lock);
-#endif
+  blas_level3_thread_leave();
 
   return 0;
 }

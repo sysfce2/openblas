@@ -801,10 +801,10 @@ void    OPENBLAS_API(dimatcopy) (char *, char *, blasint *, blasint *, double  *
 void    OPENBLAS_API(cimatcopy) (char *, char *, blasint *, blasint *, float  *, float  *, blasint *, blasint *);
 void    OPENBLAS_API(zimatcopy) (char *, char *, blasint *, blasint *, double  *, double  *, blasint *, blasint *);
 
-void    OPENBLAS_API(sgeadd) (blasint *, blasint *, float *, float *, blasint *, float *, float *, blasint*);
-void    OPENBLAS_API(dgeadd) (blasint *, blasint *, double *, double *, blasint *, double *, double *, blasint*);
-void    OPENBLAS_API(cgeadd) (blasint *, blasint *, float *, float *, blasint *, float *, float *, blasint*);
-void    OPENBLAS_API(zgeadd) (blasint *, blasint *, double *, double *, blasint *, double *, double *, blasint*);
+void    OPENBLAS_API(sgeadd) (blasint *, blasint *, float *, float *, blasint *, float *, float *, blasint*,char*, char*); 
+void    OPENBLAS_API(dgeadd) (blasint *, blasint *, double *, double *, blasint *, double *, double *, blasint*,char *, char *); 
+void    OPENBLAS_API(cgeadd) (blasint *, blasint *, float *, float *, blasint *, float *, float *, blasint*,char *, char *); 
+void    OPENBLAS_API(zgeadd) (blasint *, blasint *, double *, double *, blasint *, double *, double *, blasint*,char *, char *); 
 
 
 #ifdef __cplusplus

@@ -81,9 +81,9 @@ int openblas_get_parallel(void);
 OPENBLAS_EXPORT
 char* CNAME(void) {
 char tmpstr[20];
-  strcpy(tmp_config_str, openblas_config_str);
+  strncpy(tmp_config_str, openblas_config_str, 255-40);
 #ifdef DYNAMIC_ARCH
-  strcat(tmp_config_str, gotoblas_corename());
+  strncat(tmp_config_str, gotoblas_corename(),20);
 #endif
   if (openblas_get_parallel() == 0)
     sprintf(tmpstr, " SINGLE_THREADED");

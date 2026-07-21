@@ -182,9 +182,19 @@ misc_no_underscore_objs="
     openblas_get_config
     openblas_get_corename
     openblas_set_threads_callback_function
+    openblas_set_xerbla
 "
 
 misc_underscore_objs=""
+
+# Symbols that are exported exactly as spelled, without any SYMBOLPREFIX /
+# SYMBOLSUFFIX decoration (like the openblas_* utility functions, these are
+# not per-precision entry points).  They are therefore deliberately left out
+# of the objcopy/objconv rename lists.
+misc_no_suffix_objs="
+    openblas_cancel
+    openblas_cancel_token
+"
 
 # These routines are provided by OpenBLAS.
 lapackobjss="
@@ -4010,6 +4020,10 @@ case "$p1" in
         for obj in $no_underscore_objs; do
             printf '_%s%s%s\n' "$symbolprefix" "$obj" "$symbolsuffix"
         done
+
+        for obj in $misc_no_suffix_objs; do
+            printf '_%s\n' "$obj"
+        done
     ;;
 
     aix)
@@ -4111,8 +4125,17 @@ case "$p1" in
         done
 
         for obj in $no_underscore_objs; do
+            [ "$obj" = "openblas_set_xerbla" ] && continue
             printf '\t%s%s%s=%s  @%s\n' \
                 "$symbolprefix" "$obj" "$symbolsuffix" "$obj" "$count"
+            count=`expr $count + 1`
+        done
+        printf '\t%sopenblas_set_xerbla%s=openblas_set_xerbla  @%s\n' \
+            "$symbolprefix" "$symbolsuffix" "$count"
+        count=`expr $count + 1`
+
+        for obj in $misc_no_suffix_objs; do
+            printf '\t%s  @%s\n' "$obj" "$count"
             count=`expr $count + 1`
         done
     ;;
@@ -4166,6 +4189,10 @@ case "$p1" in
             printf '\t%s%s%s=%s__  @%s\n' \
                 "$symbolprefix" "$uppercase" "$symbolsuffix" "$obj" "$count"
             count=`expr $count + 1`
+        done
+
+        for obj in $misc_no_suffix_objs; do
+            printf '\t%s\n' "$obj"
         done
     ;;
 

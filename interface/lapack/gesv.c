@@ -100,7 +100,7 @@ int NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
 
   *Info = 0;
 
-  if (args.m == 0 || args.n == 0) return 0;
+  if (args.m == 0) return 0;
 
   IDEBUG_START;
 
@@ -118,20 +118,20 @@ int NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
 
 #if defined(_WIN64) && defined(_M_ARM64)
   #ifdef COMPLEX
-    if (args.m * args.n <= 300) 
+    if (args.m * args.m <= 300) 
   #else
-    if (args.m * args.n <= 500) 
+    if (args.m * args.m <= 500) 
   #endif
       args.nthreads = 1;
-  else if (args.m * args.n <= 1000)
+  else if (args.m * args.m <= 1000)
     args.nthreads = 4;
   else
     args.nthreads = num_cpu_avail(4);
 #else
   #ifndef DOUBLE
-    if (args.m * args.n < 40000)
+    if (args.m * args.m < 40000)
   #else
-    if (args.m * args.n < 10000)
+    if (args.m * args.m < 10000)
   #endif
       args.nthreads = 1;
     else
@@ -144,7 +144,7 @@ int NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
     args.n    = *N;
     info = GETRF_SINGLE(&args, NULL, NULL, sa, sb, 0);
 
-    if (info == 0){
+    if (info == 0 && *NRHS >0){
       args.n    = *NRHS;
       GETRS_N_SINGLE(&args, NULL, NULL, sa, sb, 0);
     }
@@ -155,7 +155,7 @@ int NAME(blasint *N, blasint *NRHS, FLOAT *a, blasint *ldA, blasint *ipiv,
     args.n    = *N;
     info = GETRF_PARALLEL(&args, NULL, NULL, sa, sb, 0);
 
-    if (info == 0){
+    if (info == 0 && *NRHS > 0){
       args.n    = *NRHS;
       GETRS_N_PARALLEL(&args, NULL, NULL, sa, sb, 0);
     }

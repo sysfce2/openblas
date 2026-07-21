@@ -321,8 +321,11 @@ int detect(void)
 	return CPU_CORTEXX2;
       else if (strstr(cpu_part, "0xd4e")) //X3
 	return CPU_CORTEXX2;
-      else if (strstr(cpu_part, "0xd4f")) //NVIDIA Grace et al.
+      else if (strstr(cpu_part, "0xd4f"))
         return CPU_NEOVERSEV2;
+	  else if (strstr(cpu_part, "0xd87") || strstr(cpu_part, "0xd85")  // A725,X925
+		|| strstr(cpu_part, "0xd84") || strstr(cpu_part, "0xd83")) // V3,V3AE
+		return CPU_NEOVERSEV2;
       else if (strstr(cpu_part, "0xd0b")) 
        return CPU_CORTEXA76;
     }
@@ -423,13 +426,13 @@ int detect(void)
 	if (errcode != ERROR_SUCCESS) wprintf(L"Error reading cpuname from registry:%x\n",errcode);
 //wprintf(stderr,L"%s\n",(PWSTR)valstring);
 	RegCloseKey(reghandle);
-	if (strstr(valstring, "Snapdragon(R) X Elite")) {
+	if (strstr(pvalstring, "Snapdragon(R) X Elite")) {
 		aliased = 1;
 		return CPU_NEOVERSEN1;
 	}
-	if (strstr(valstring, "Ampere(R) Altra")) return CPU_NEOVERSEN1;
-	if (strstr(valstring, "Snapdragon (TM) 8cx Gen 3")) return CPU_CORTEXX1;
-	if (strstr(valstring, "Snapdragon Compute Platform")) return CPU_CORTEXX1;
+	if (strstr(pvalstring, "Ampere(R) Altra")) return CPU_NEOVERSEN1;
+	if (strstr(pvalstring, "Snapdragon (TM) 8cx Gen 3")) return CPU_CORTEXX1;
+	if (strstr(pvalstring, "Snapdragon Compute Platform")) return CPU_CORTEXX1;
 #endif
 #endif
 	return CPU_ARMV8;	
