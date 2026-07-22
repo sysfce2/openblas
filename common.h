@@ -80,7 +80,7 @@ extern "C" {
 #endif
 
 #ifndef ASSEMBLER
-#ifdef HAVE_C11
+#if defined(HAVE_C11) && !defined(__cplusplus)
 #if defined(C_GCC) && ( __GNUC__ < 7)
 // workaround for GCC bug 65467
 #ifndef _Atomic
@@ -447,7 +447,7 @@ please https://github.com/xianyi/OpenBLAS/issues/246
 #endif
 
 #ifndef ASSEMBLER
-#ifdef HAVE_C11
+#if defined(HAVE_C11) && !defined(__cplusplus)
 #define BLAS_LOCK_DEFINED
 #endif
 #endif
@@ -579,7 +579,7 @@ static __inline void blas_lock(volatile BLASULONG *address){
 #define BLAS_LOCK_DEFINED
 #endif
 
-#ifdef HAVE_C11
+#if defined(HAVE_C11) && !defined(__cplusplus)
 static __inline void blas_lock(volatile BLASULONG *address) {
   BLASULONG expected = 0;
   while (!atomic_compare_exchange_strong((volatile _Atomic BLASULONG *)address,
@@ -591,7 +591,7 @@ static __inline void blas_lock(volatile BLASULONG *address) {
 #endif
 
 static __inline void blas_unlock(volatile BLASULONG *address){
-#ifdef HAVE_C11
+#if defined(HAVE_C11) && !defined(__cplusplus)
   atomic_store((volatile _Atomic BLASULONG *)address, (BLASULONG)0);
 #else
   MB;
