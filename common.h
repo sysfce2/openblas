@@ -57,6 +57,7 @@ extern "C" {
 #define __USE_SVID
 #endif
 
+#include "exports.h"
 #ifdef BUILD_KERNEL
 #include "config_kernel.h"
 #else
@@ -209,8 +210,10 @@ extern "C" {
 
 #ifdef NEEDBUNDERSCORE
 #define BLASFUNC(FUNC) FUNC##_
+#define OPENBLAS_API(FUNC) OPENBLAS_EXPORT FUNC##_
 #else
 #define BLASFUNC(FUNC) FUNC
+#define OPENBLAS_API(FUNC) OPENBLAS_EXPORT FUNC
 #endif
 
 #undef	USE_PTHREAD_LOCK
@@ -761,13 +764,13 @@ int get_num_proc   (int);
 int get_node_equal (void);
 #endif
 
-void goto_set_num_threads(int);
+OPENBLAS_EXPORT void goto_set_num_threads(int);
 
 /* Cooperative cancellation of in-flight operations
  * (implemented in driver/others/openblas_cancel.c).  These symbols are
  * exported without SYMBOLPREFIX/SYMBOLSUFFIX decoration. */
 size_t *openblas_cancel_token(void);
-void openblas_cancel(size_t *token, size_t loaded_token);
+OPENBLAS_EXPORT void openblas_cancel(size_t *token, size_t loaded_token);
 
 /* Internal helpers for the instrumented compute drivers. */
 size_t  openblas_cancel_begin(void);
@@ -905,7 +908,7 @@ typedef void (*openblas_xerbla_handler)(const char *name,
                                         const blasint *info,
                                         size_t name_length);
 #endif
-openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
+OPENBLAS_EXPORT openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
 #ifdef __cplusplus
 }
 #endif

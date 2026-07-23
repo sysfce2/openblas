@@ -743,6 +743,7 @@ if (BUILD_HFLOAT16)
 endif()
 if(NOT MSVC)
 set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} ${CCOMMON_OPT}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
 endif()
 # TODO: not sure what PFLAGS is -hpa
 set(PFLAGS "${PFLAGS} ${CCOMMON_OPT} -I${TOPDIR} -DPROFILE ${COMMON_PROF}")
@@ -805,6 +806,7 @@ if (${CMAKE_C_COMPILER_ID} MATCHES "IntelLLVM" AND ${CMAKE_SYSTEM_NAME} STREQUAL
 	set(LAPACK_CFLAGS "${LAPACK_CFLAGS} -DNOCHANGE")
 endif ()
 
+string(REPLACE "-fvisibility=hidden" "" LAPACK_CFLAGS ${LAPACK_CFLAGS})
 
 if (NOT DEFINED SUFFIX)
   set(SUFFIX o)
