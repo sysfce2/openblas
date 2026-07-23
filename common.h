@@ -770,7 +770,7 @@ OPENBLAS_EXPORT void goto_set_num_threads(int);
  * (implemented in driver/others/openblas_cancel.c).  These symbols are
  * exported without SYMBOLPREFIX/SYMBOLSUFFIX decoration. */
 size_t *openblas_cancel_token(void);
-void openblas_cancel(size_t *token, size_t loaded_token);
+OPENBLAS_EXPORT void openblas_cancel(size_t *token, size_t loaded_token);
 
 /* Internal helpers for the instrumented compute drivers. */
 size_t  openblas_cancel_begin(void);
@@ -908,7 +908,7 @@ typedef void (*openblas_xerbla_handler)(const char *name,
                                         const blasint *info,
                                         size_t name_length);
 #endif
-openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
+OPENBLAS_EXPORT openblas_xerbla_handler openblas_set_xerbla(openblas_xerbla_handler handler);
 #ifdef __cplusplus
 }
 #endif
