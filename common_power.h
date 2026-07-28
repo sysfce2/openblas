@@ -668,6 +668,17 @@ REALNAME:;\
 	.csect .text[PR],5;\
 .REALNAME:
 
+#define PROLOGUE_EXPORT \
+	.machine "any";\
+	.toc;\
+	.globl .REALNAME;\
+	.globl REALNAME;\
+	.csect REALNAME[DS],3;\
+REALNAME:;\
+	.long .REALNAME, TOC[tc0], 0;\
+	.csect .text[PR],5;\
+.REALNAME:
+
 #define EPILOGUE \
 _section_.text:;\
 	.csect .data[RW],4;\
@@ -676,6 +687,17 @@ _section_.text:;\
 #else
 
 #define PROLOGUE \
+	.machine "any";\
+	.toc;\
+	.globl .REALNAME;\
+	.globl REALNAME;\
+	.csect REALNAME[DS],3;\
+REALNAME:;\
+	.llong .REALNAME, TOC[tc0], 0;\
+	.csect .text[PR], 5;\
+.REALNAME:
+
+#define PROLOGUE_EXPORT \
 	.machine "any";\
 	.toc;\
 	.globl .REALNAME;\
@@ -707,8 +729,28 @@ _section_.text:;\
 	.globl REALNAME
 REALNAME:
 	.endmacro
+
+	.macro PROLOGUE_EXPORT
+	.section __TEXT,__text,regular,pure_instructions
+	.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.machine ppc
+	.text
+	.align 4
+	.globl REALNAME
+REALNAME:
+	.endmacro
 #else
 	.macro PROLOGUE
+	.section __TEXT,__text,regular,pure_instructions
+	.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
+	.machine ppc64
+	.text
+	.align 4
+	.globl REALNAME
+REALNAME:
+	.endmacro
+
+	.macro PROLOGUE_EXPORT
 	.section __TEXT,__text,regular,pure_instructions
 	.section __TEXT,__picsymbolstub1,symbol_stubs,pure_instructions,32
 	.machine ppc64
