@@ -118,17 +118,19 @@ void goto_set_num_threads(int num_threads) {
 #endif
 
 }
+OPENBLAS_EXPORT
 void openblas_set_num_threads(int num_threads) {
 	blas_is_num_threads_set_explicitly = 1;
 	goto_set_num_threads(num_threads);
 }
 
 #ifdef OS_LINUX
-
+OPENBLAS_EXPORT
 int openblas_setaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set) {
   fprintf(stderr,"OpenBLAS: use OpenMP environment variables for setting cpu affinity\n");
   return -1;
 }
+OPENBLAS_EXPORT
 int openblas_getaffinity(int thread_idx, size_t cpusetsize, cpu_set_t* cpu_set) {
   fprintf(stderr,"OpenBLAS: use OpenMP environment variables for querying cpu affinity\n");
   return -1;
