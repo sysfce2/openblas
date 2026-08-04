@@ -148,6 +148,7 @@ static __inline int num_cpu_avail(int level) {
      `omp_get_max_threads()` below (which is to get a default
      in case the user hasn't made an explicit choice). */
   if (blas_is_num_threads_set_explicitly) {
+	  if (omp_in_parallel()) return 1;
     return blas_cpu_number;
   }
 
