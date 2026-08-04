@@ -29,6 +29,10 @@ if (CPP_THREAD_SAFETY_TEST)
   add_executable(dgemm_thread_safety_mixed dgemm_thread_safety_mixed.cpp)
   target_link_libraries(dgemm_thread_safety_mixed ${CPP_THREAD_SAFETY_LIBS})
   add_test(NAME dgemm_thread_safety_mixed COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dgemm_thread_safety_mixed ${CPP_THREAD_SAFETY_DGEMM_MIXED_ARGS})
+
+  if (USE_THREAD AND (USE_OPENMP OR (NOT WIN32 AND NOT CYGWIN)))
+    add_test(NAME dgemm_thread_safety_mixed_callback COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dgemm_thread_safety_mixed ${CPP_THREAD_SAFETY_DGEMM_MIXED_ARGS} --callback)
+  endif()
 endif()
 
 
