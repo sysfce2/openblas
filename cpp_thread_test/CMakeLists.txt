@@ -19,6 +19,7 @@ endif()
 set(CPP_THREAD_SAFETY_DGEMM_ARGS "" CACHE STRING "Arguments passed to the DGEMM thread safety test")
 set(CPP_THREAD_SAFETY_DGEMM_MIXED_ARGS "" CACHE STRING "Arguments passed to the mixed DGEMM thread safety test")
 set(CPP_THREAD_SAFETY_DGEMV_ARGS "" CACHE STRING "Arguments passed to the DGEMV thread safety test")
+set(CPP_THREAD_SAFETY_SHUTDOWN_ARGS "" CACHE STRING "Arguments passed to the DGEMM shutdown safety test")
 
 if (CPP_THREAD_SAFETY_TEST)
   message(STATUS "building thread safety test")
@@ -29,6 +30,18 @@ if (CPP_THREAD_SAFETY_TEST)
   add_executable(dgemm_thread_safety_mixed dgemm_thread_safety_mixed.cpp)
   target_link_libraries(dgemm_thread_safety_mixed ${CPP_THREAD_SAFETY_LIBS})
   add_test(NAME dgemm_thread_safety_mixed COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dgemm_thread_safety_mixed ${CPP_THREAD_SAFETY_DGEMM_MIXED_ARGS})
+
+  # The shutdown race is Windows-specific: on POSIX, exit() runs the library
+  # destructor while worker threads are still computing into OpenBLAS-owned
+  # buffers, which no amount of locking inside blas_shutdown can make safe.
+  if (WIN32)
+    add_executable(dgemm_thread_safety_shutdown dgemm_thread_safety_shutdown.cpp)
+    target_link_libraries(dgemm_thread_safety_shutdown ${CPP_THREAD_SAFETY_LIBS})
+    add_test(NAME dgemm_thread_safety_shutdown COMMAND ${CMAKE_CURRENT_BINARY_DIR}/dgemm_thread_safety_shutdown ${CPP_THREAD_SAFETY_SHUTDOWN_ARGS})
+    # Bounded by the test itself: 40 children, each killed after 10s at worst.
+    # A passing run takes a few seconds; only a failing one approaches this.
+    set_tests_properties(dgemm_thread_safety_shutdown PROPERTIES TIMEOUT 600)
+  endif()
 endif()
 
 
