@@ -106,7 +106,15 @@ typedef struct blas_queue {
   blas_arg_t *args;
   void *range_m;
   void *range_n;
+
+  /*
+   * sa and sb are caller-owned inputs. worker_sb reports the sb workspace
+   * used by the threading backend for the most recent invocation.
+   * Keeping these roles separate prevents a reused queue from treating a
+   * released workspace as input to its next invocation.
+   */
   void *sa, *sb;
+  void *worker_sb;
 
   struct blas_queue *next;
 
@@ -183,6 +191,7 @@ static __inline void blas_queue_init(blas_queue_t *queue){
 
   queue -> sa    = NULL;
   queue -> sb    = NULL;
+  queue -> worker_sb = NULL;
   queue-> next  = NULL;
 }
 
