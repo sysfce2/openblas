@@ -2123,6 +2123,37 @@ static pthread_spinlock_t alloc_lock = 0;
 static BLASULONG  alloc_lock = 0UL;
 #endif
 
+static void blas_release_register(void *address, void (*func)(struct release_t *), long attr) {
+
+  struct release_t *release;
+  int rpos;
+
+#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
+  LOCK_COMMAND(&alloc_lock);
+#endif
+#if defined(HAVE_C11) && !defined(__cplusplus)
+  rpos = atomic_fetch_add(&release_pos, 1);
+#elif defined(__GNUC__)
+  rpos = __sync_fetch_and_add(&release_pos, 1);
+#elif defined(OS_WINDOWS)
+  rpos = InterlockedIncrement((LONG volatile *)&release_pos) - 1;
+#else
+  rpos = release_pos++;
+#endif
+  if (likely(rpos < NUM_BUFFERS)) {
+    release = &release_info[rpos];
+  } else {
+    release = &new_release_info[rpos - NUM_BUFFERS];
+  }
+  release->address = address;
+  release->attr    = attr;
+  WMB;
+  release->func    = func;
+#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
+  UNLOCK_COMMAND(&alloc_lock);
+#endif
+}
+
 #ifdef ALLOC_MMAP
 
 static void alloc_mmap_free(struct release_t *release){
@@ -2154,20 +2185,7 @@ static void *alloc_mmap(void *address){
   }
 
   if (map_address != (void *)-1) {
-#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
-    LOCK_COMMAND(&alloc_lock);
-#endif
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_mmap_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_mmap_free;
-    }
-#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
-    UNLOCK_COMMAND(&alloc_lock);
-#endif
+    blas_release_register(map_address, alloc_mmap_free, 0);
   } else {
 #ifdef DEBUG
         int errsv=errno;
@@ -2323,20 +2341,7 @@ static void *alloc_mmap(void *address){
 #endif
 
   if (map_address != (void *)-1) {
-#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
-    LOCK_COMMAND(&alloc_lock);
-#endif
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_mmap_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_mmap_free;
-    }
-#if (defined(SMP) || defined(USE_LOCKING)) && !defined(USE_OPENMP)
-    UNLOCK_COMMAND(&alloc_lock);
-#endif
+    blas_release_register(map_address, alloc_mmap_free, 0);
   }
 
   return map_address;
@@ -2364,14 +2369,7 @@ static void *alloc_malloc(void *address){
   if (map_address == (void *)NULL) map_address = (void *)-1;
 
   if (map_address != (void *)-1) {
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_malloc_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_malloc_free;
-    }
+    blas_release_register(map_address, alloc_malloc_free, 0);
   }
 
   return map_address;
@@ -2403,14 +2401,7 @@ static void *alloc_qalloc(void *address){
   if (map_address == (void *)NULL) map_address = (void *)-1;
 
   if (map_address != (void *)-1) {
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_qalloc_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_qalloc_free;
-    }
+    blas_release_register(map_address, alloc_qalloc_free, 0);
   }
 
   return (void *)(((BLASULONG)map_address + FIXED_PAGESIZE - 1) & ~(FIXED_PAGESIZE - 1));
@@ -2437,14 +2428,7 @@ static void *alloc_windows(void *address){
   if (map_address == (void *)NULL) map_address = (void *)-1;
 
   if (map_address != (void *)-1) {
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_windows_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_windows_free;
-    }
+    blas_release_register(map_address, alloc_windows_free, 0);
   }
 
   return map_address;
@@ -2486,16 +2470,7 @@ static void *alloc_devicedirver(void *address){
                      fd, 0);
 
   if (map_address != (void *)-1) {
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].attr    = fd;
-    release_info[rpos].func    = alloc_devicedirver_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].attr    = fd;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_devicedirver_free;
-    }
+    blas_release_register(map_address, alloc_devicedirver_free, fd);
   }
 
   return map_address;
@@ -2530,16 +2505,7 @@ static void *alloc_shm(void *address){
 
     shmctl(shmid, IPC_RMID, 0);
 
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].attr    = shmid;
-    release_info[rpos].func    = alloc_shm_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].attr    = shmid;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_shm_free;
-    }
+    blas_release_register(map_address, alloc_shm_free, shmid);
   }
 
   return map_address;
@@ -2647,14 +2613,7 @@ fprintf(stderr,"alloc_hugetlb got called\n");
 #endif
 
   if (map_address != (void *)-1){
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].func    = alloc_hugetlb_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_hugetlb_free;
-    }
+    blas_release_register(map_address, alloc_hugetlb_free, 0);
   }
 
   return map_address;
@@ -2699,16 +2658,7 @@ static void *alloc_hugetlbfile(void *address){
                      fd, 0);
 
   if (map_address != (void *)-1) {
-    int rpos = release_pos++;
-    if (likely(rpos < NUM_BUFFERS)) {
-    release_info[rpos].address = map_address;
-    release_info[rpos].attr    = fd;
-    release_info[rpos].func    = alloc_hugetlbfile_free;
-    } else {
-    new_release_info[rpos-NUM_BUFFERS].address = map_address;
-    new_release_info[rpos-NUM_BUFFERS].attr    = fd;
-    new_release_info[rpos-NUM_BUFFERS].func    = alloc_hugetlbfile_free;
-    }
+    blas_release_register(map_address, alloc_hugetlbfile_free, fd);
   }
 
   return map_address;
