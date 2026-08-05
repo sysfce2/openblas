@@ -3203,14 +3203,20 @@ void blas_memory_free_nolock(void * map_address) {
    it. RtlDllShutdownInProgress is documented under Win32 Dev Notes but
    deliberately absent from the SDK headers, so callers declare it themselves
    If it cannot be resolved we fall back to the previous behaviour. */
-static int blas_process_is_terminating(void) {
-  typedef BOOLEAN (WINAPI *rtl_dll_shutdown_in_progress_t)(VOID);
-  rtl_dll_shutdown_in_progress_t shutdown_in_progress;
+typedef BOOLEAN (WINAPI *rtl_dll_shutdown_in_progress_t)(VOID);
+static rtl_dll_shutdown_in_progress_t rtl_dll_shutdown_in_progress = NULL;
+
+/* Resolved at init, not on the way out: GetModuleHandle takes LdrpSnapsLock,
+   which ExitProcess does not release before it kills the other threads. */
+static void blas_shutdown_check_init(void) {
   HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-  if (!ntdll) return 0;
-  shutdown_in_progress = (rtl_dll_shutdown_in_progress_t)(void *)
+  if (!ntdll) return;
+  rtl_dll_shutdown_in_progress = (rtl_dll_shutdown_in_progress_t)(void *)
       GetProcAddress(ntdll, "RtlDllShutdownInProgress");
-  return shutdown_in_progress && shutdown_in_progress();
+}
+
+static int blas_process_is_terminating(void) {
+  return rtl_dll_shutdown_in_progress && rtl_dll_shutdown_in_progress();
 }
 #endif
 
@@ -3391,6 +3397,10 @@ extern void openblas_read_env(void);
 void CONSTRUCTOR gotoblas_init(void) {
 
   if (gotoblas_initialized) return;
+
+#if defined(OS_WINDOWS) && !defined(OS_CYGWIN_NT)
+  blas_shutdown_check_init();
+#endif
 
 #ifdef SMP
   openblas_fork_handler();
