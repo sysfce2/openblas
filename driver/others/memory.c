@@ -2099,7 +2099,7 @@ int openblas_get_num_threads(void) {
 
 struct release_t {
   void *address;
-  void (*func)(struct release_t *);
+  void (* _Atomic func)(struct release_t *);
   long attr;
 };
 
@@ -3006,7 +3006,9 @@ void *blas_memory_alloc(int procpos){
 #endif
   memory_overflowed=1;
   MB;
-  new_release_info = (struct release_t*) malloc(NEW_BUFFERS * sizeof(struct release_t));
+  /* zeroed so blas_shutdown sees NULL func in slots that were reserved but
+     never published */
+  new_release_info = (struct release_t*) calloc(NEW_BUFFERS, sizeof(struct release_t));
   newmemory = (struct newmemstruct*) malloc(NEW_BUFFERS * sizeof(struct newmemstruct));
   for (i = 0; i < NEW_BUFFERS; i++) {
   newmemory[i].addr   = (void *)0;
@@ -3190,9 +3192,29 @@ void blas_memory_free_nolock(void * map_address) {
   free(map_address);
 }
 
+#if defined(OS_WINDOWS) && !defined(OS_CYGWIN_NT)
+/* During process termination Windows has already killed every other thread,
+   possibly while one held alloc_lock or a blas server lock, so any cleanup
+   here can only deadlock or crash; the OS reclaims the memory anyway.
+   FreeLibrary-style unloads still clean up as before. */
+static int blas_process_is_terminating(void) {
+  typedef BOOLEAN (WINAPI *rtl_dll_shutdown_in_progress_t)(VOID);
+  rtl_dll_shutdown_in_progress_t shutdown_in_progress;
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+  if (!ntdll) return 0;
+  shutdown_in_progress = (rtl_dll_shutdown_in_progress_t)(void *)
+      GetProcAddress(ntdll, "RtlDllShutdownInProgress");
+  return shutdown_in_progress && shutdown_in_progress();
+}
+#endif
+
 void blas_shutdown(void){
 
-  int pos;
+  int pos, release_count;
+
+#if defined(OS_WINDOWS) && !defined(OS_CYGWIN_NT)
+  if (blas_process_is_terminating()) return;
+#endif
 
 #ifdef SMP
   BLASFUNC(blas_thread_shutdown)();
@@ -3200,12 +3222,18 @@ void blas_shutdown(void){
 
   LOCK_COMMAND(&alloc_lock);
 
-  for (pos = 0; pos < release_pos; pos ++) {
-    if (likely(pos < NUM_BUFFERS))
-    release_info[pos].func(&release_info[pos]);
-    else
-    new_release_info[pos-NUM_BUFFERS].func(&new_release_info[pos-NUM_BUFFERS]);
+  release_count = release_pos;
+  for (pos = 0; pos < release_count; pos ++) {
+    struct release_t *release = likely(pos < NUM_BUFFERS) ?
+        &release_info[pos] : &new_release_info[pos-NUM_BUFFERS];
+    void (*func)(struct release_t *) = release->func;
+    RMB;
+    if (func == NULL) continue; /* reserved but never published: owner died mid-allocation */
+    func(release);
+    release->func = NULL;
+    release->address = NULL;
   }
+  release_pos = 0;
 
 #ifdef SEEK_ADDRESS
   base_address      = 0UL;
@@ -3232,6 +3260,8 @@ void blas_shutdown(void){
     }
     free((void*)newmemory);
     newmemory = NULL;
+    free(new_release_info);
+    new_release_info = NULL;
     memory_overflowed = 0;
   }
 
