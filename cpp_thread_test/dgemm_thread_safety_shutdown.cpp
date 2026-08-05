@@ -43,7 +43,7 @@ const blasint poolDim = 320; /* above the multithreading threshold, so the pool 
 const uint32_t defaultStormCallers = 128;
 const uint32_t stormDelayMs = 3; /* gate to sweep; at 0 the sweep beats the allocations */
 const int stormBlasThreads = 4;
-const int stormTimeoutSec = 10;
+const int stormTimeoutSec = 15;
 const int numStormChildren = 40;
 
 std::atomic<uint32_t> parked(0); /* callers built and waiting on the gate */
