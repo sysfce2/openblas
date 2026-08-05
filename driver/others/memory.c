@@ -3196,7 +3196,13 @@ void blas_memory_free_nolock(void * map_address) {
 /* During process termination Windows has already killed every other thread,
    possibly while one held alloc_lock or a blas server lock, so any cleanup
    here can only deadlock or crash; the OS reclaims the memory anyway.
-   FreeLibrary-style unloads still clean up as before. */
+
+   Nothing in the SDK reports this from a destructor. DllMain's lpReserved
+   distinguishes the two cases, but outside MSVC gotoblas_quit runs from the
+   CRT's fini array via __attribute__((destructor)) and never sees
+   it. RtlDllShutdownInProgress is documented under Win32 Dev Notes but
+   deliberately absent from the SDK headers, so callers declare it themselves
+   If it cannot be resolved we fall back to the previous behaviour. */
 static int blas_process_is_terminating(void) {
   typedef BOOLEAN (WINAPI *rtl_dll_shutdown_in_progress_t)(VOID);
   rtl_dll_shutdown_in_progress_t shutdown_in_progress;
