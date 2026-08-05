@@ -83,6 +83,7 @@ jobs:
 
       - name: Test
         run: |
+          sudo wget https://gist.github.com/martin-frbg/01de086ee9955966799821db0a4fb1db/raw/4fd13657b44eada4cf8b4a51e43636b9d7b0f42f/qemu-loongarch64 -P /usr/bin -o qemu-loongarch64-static
           qemu-loongarch64-static ./utest/openblas_utest
           qemu-loongarch64-static ./utest/openblas_utest_ext
           OPENBLAS_NUM_THREADS=2 qemu-loongarch64-static ./ctest/xscblat1
