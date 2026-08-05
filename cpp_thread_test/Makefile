@@ -16,6 +16,7 @@ ifneq ($(OSNAME),$(filter $(OSNAME),WINNT CYGWIN_NT))
 CALLBACK_THREAD_TEST = 1
 endif
 endif
+endif
 
 ifeq ($(CALLBACK_THREAD_TEST),1)
 .PHONY : dgemm_mixed_callback_tester
