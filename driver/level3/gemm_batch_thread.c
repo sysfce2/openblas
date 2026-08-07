@@ -88,6 +88,8 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
 #define ERROR_NAME "QGEMM_BATCH "
 #elif defined(DOUBLE)
 #define ERROR_NAME "DGEMM_BATCH "
+#elif defined(BFLOAT16)
+#define ERROR_NAME "SBGEMM_BATCH "
 #else
 #define ERROR_NAME "SGEMM_BATCH "
 #endif
@@ -112,7 +114,7 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
   if (!buffer) {
     info = -999;
     BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
-    return;
+    return(1); 
   }
 
   sa = (XFLOAT *)((BLASLONG)buffer +GEMM_OFFSET_A);
@@ -144,6 +146,8 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
     queue=(blas_queue_t *)malloc((nums+1) * sizeof(blas_queue_t));
     if(queue == NULL){
       openblas_warning(0, "memory alloc failed!\n");
+      if (buffer) blas_memory_free(buffer);
+      BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
       return(1);
     }
     for(i=0; i<nums; i++){
