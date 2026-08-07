@@ -79,6 +79,7 @@ static int inner_small_matrix_thread(blas_arg_t *args, BLASLONG *range_m, BLASLO
 int CNAME(blas_arg_t * args_array, BLASLONG nums){
   XFLOAT *buffer;
   XFLOAT *sa, *sb;
+  blasint info;
   int nthreads=1;
   int (*routine)(blas_arg_t *, void *, void *, XFLOAT *, XFLOAT *, BLASLONG);
   int i=0, /*j,*/ current_nums;
@@ -147,6 +148,7 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
     if(queue == NULL){
       openblas_warning(0, "memory alloc failed!\n");
       if (buffer) blas_memory_free(buffer);
+      info = -999;
       BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
       return(1);
     }
