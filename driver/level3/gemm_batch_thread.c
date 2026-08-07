@@ -83,6 +83,25 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
   int (*routine)(blas_arg_t *, void *, void *, XFLOAT *, XFLOAT *, BLASLONG);
   int i=0, /*j,*/ current_nums;
 
+#ifndef COMPLEX
+#ifdef XDOUBLE
+#define ERROR_NAME "QGEMM_BATCH "
+#elif defined(DOUBLE)
+#define ERROR_NAME "DGEMM_BATCH "
+#else
+#define ERROR_NAME "SGEMM_BATCH "
+#endif
+#else
+#ifdef XDOUBLE
+#define ERROR_NAME "XGEMM_BATCH "
+#elif defined(DOUBLE)
+#define ERROR_NAME "ZGEMM_BATCH "
+#else
+#define ERROR_NAME "CGEMM_BATCH "
+#endif
+#endif
+
+
 #ifdef SMP
   blas_queue_t * queue=NULL;
 #endif
@@ -90,6 +109,12 @@ int CNAME(blas_arg_t * args_array, BLASLONG nums){
   if(nums <=0 ) return 0;
 
   buffer = (XFLOAT *)blas_memory_alloc(0);
+  if (!buffer) {
+    info = -999;
+    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
+    return;
+  }
+
   sa = (XFLOAT *)((BLASLONG)buffer +GEMM_OFFSET_A);
   sb = (XFLOAT *)(((BLASLONG)sa + ((GEMM_P * GEMM_Q * COMPSIZE * SIZE + GEMM_ALIGN) & ~GEMM_ALIGN)) + GEMM_OFFSET_B);
   
