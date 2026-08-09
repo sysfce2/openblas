@@ -171,7 +171,7 @@ extern gotoblas_t  gotoblas_CORTEXA53;
 #else
 extern gotoblas_t  gotoblas_CORTEXA57;
 #endif
-#define gotoblas_CORTEXA72 gotoblas_CORTEXA57
+extern gotoblas_t  gotoblas_CORTEXA72;
 #define gotoblas_CORTEXA73 gotoblas_CORTEXA57
 #define gotoblas_FALKOR gotoblas_CORTEXA57
 #ifdef OS_DARWIN
