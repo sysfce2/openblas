@@ -168,12 +168,12 @@ extern gotoblas_t  gotoblas_CORTEXA53;
 #define gotoblas_CORTEXA55 gotoblas_CORTEXA53
 #ifdef OS_DARWIN
 #define gotoblas_CORTEXA57 gotoblas_ARMV8
-#define gotoblas_CORTEXA72 gotoblas_ARMV8
 #else
 extern gotoblas_t  gotoblas_CORTEXA57;
-/* Darwin DYNAMIC_CORE does not build CORTEXA72; Linux DYNAMIC_ARCH does. */
-extern gotoblas_t  gotoblas_CORTEXA72;
 #endif
+/* Keep A72 out of the default DYNAMIC_CORE set (see #4389); opt in via
+ * DYNAMIC_LIST=CORTEXA72. Default DYNAMIC_ARCH continues to alias A57. */
+#define gotoblas_CORTEXA72 gotoblas_CORTEXA57
 #define gotoblas_CORTEXA73 gotoblas_CORTEXA57
 #define gotoblas_FALKOR gotoblas_CORTEXA57
 #ifdef OS_DARWIN
