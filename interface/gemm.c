@@ -45,6 +45,12 @@
 #include "functable.h"
 #endif
 
+#ifdef ARCH_ARM64
+void sme_SGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const float *alpha, const float *a, const BLASLONG *lda, const float *b, const BLASLONG *ldb, const float *beta, float *c, const BLASLONG *ldc);
+void sme_DGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const double *alpha, const double *a, const BLASLONG *lda, const double *b, const BLASLONG *ldb, const double *beta, double *c, const BLASLONG *ldc);
+void sme_CGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const float _Complex alpha, const float *a, const BLASLONG *lda, const float *b, const BLASLONG *ldb, const float _Complex beta, float *c, const BLASLONG *ldc);
+void sme_ZGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const double _Complex alpha, const double *a, const BLASLONG *lda, const double *b, const BLASLONG *ldb, const double _Complex beta, double *c, const BLASLONG *ldc);
+#endif
 #ifndef COMPLEX
 #define SMP_THRESHOLD_MIN 65536.0
 #ifdef XDOUBLE
@@ -268,7 +274,6 @@ void NAME(char *TRANSA, char *TRANSB,
 
   int transa, transb, nrowa, nrowb;
   blasint info;
-  int order = -1;
 
   char transA, transB;
   IFLOAT *buffer;
@@ -346,7 +351,6 @@ void NAME(char *TRANSA, char *TRANSB,
   if (transB == 'R') transb = 2;
   if (transB == 'C') transb = 3;
 #endif
-
   nrowa = args.m;
   if (transa & 1) nrowa = args.k;
   nrowb = args.k;
@@ -562,8 +566,8 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
  || strcmp(gotoblas_corename(), "vortexm4") == 0
 #endif
 )
-// if (support_sme1())
 #endif
+
   if (order == CblasRowMajor && k==lda && n==ldb && n==ldc && beta == 0 && alpha == 1.0 && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
         SGEMM_DIRECT(m, n, k, a, lda, b, ldb, c, ldc);
         return;
@@ -574,10 +578,69 @@ else
         return;
   }
 
-#endif
-#endif
+#endif //defined arm64
+#endif //defined complex
 
+
+#endif //defined CBLAS
+
+#if !defined(BFLOAT16)  && !defined(HFLOAT16)
+#if defined(ARCH_ARM64) && (defined(USE_SGEMM_KERNEL_DIRECT)||defined(DYNAMIC_ARCH))
+#if defined(DYNAMIC_ARCH)
+if (strcmp(gotoblas_corename(), "armv9sme") == 0
+#if defined(__clang__)
+ || strcmp(gotoblas_corename(), "vortexm4") == 0
 #endif
+)
+#endif //defined dynarch
+{
+char* TA,*TB;
+      if (transa & 1)
+        TA = "T";
+	else
+	TA= "N";
+      if (transb & 1)
+        TB = "T";
+	else
+	TB= "N";
+#ifndef COMPLEX
+      if (transa == 3)
+	TA= "T";
+      if (transb == 3)
+	TB= "T";
+FLOAT* al=(FLOAT*)args.alpha;
+FLOAT* be=(FLOAT*)args.beta;
+#ifndef DOUBLE
+        sme_SGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, al, args.a, &args.lda, args.b, &args.ldb, be, args.c, &args.ldc);
+#else
+        sme_DGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, al, args.a, &args.lda, args.b, &args.ldb, be, args.c, &args.ldc);
+#endif
+#else
+      if (transa == 2)
+	TA= "R";
+      if (transb == 2)
+	TB= "R";
+      if (transa == 3)
+	TA= "C";
+      if (transb == 3)
+	TB= "C";
+FLOAT* al=(FLOAT*)args.alpha;
+FLOAT* be=(FLOAT*)args.beta;
+#ifndef DOUBLE
+float _Complex c_al={al[0],al[1]};
+float _Complex c_be={be[0],be[1]};
+        sme_CGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, c_al, args.a, &args.lda, args.b, &args.ldb, c_be, args.c, &args.ldc);
+#else
+double _Complex c_al={al[0],al[1]};
+double _Complex c_be={be[0],be[1]};
+        sme_ZGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, c_al, args.a, &args.lda, args.b, &args.ldb, c_be, args.c, &args.ldc);
+#endif
+#endif
+	return;
+}
+#endif //defined arm64
+
+#endif //defined b/hfloat16
 
 #if defined(__linux__) && defined(__x86_64__) && defined(BFLOAT16)
 #if defined(DYNAMIC_ARCH)
