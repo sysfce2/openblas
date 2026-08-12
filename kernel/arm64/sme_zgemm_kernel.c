@@ -33,7 +33,7 @@ zdouble cdone={1.,0.};
 #define KC 256
 #define NC 512
 
-inline void zgemm_sme_compute_8x8_tile(int current_K, const double *A_ptr, const double *B_ptr, zdouble *C_ptr, size_t ldc, int beta_mode, const zdouble *beta_ptr)
+static inline void zgemm_sme_compute_8x8_tile(int current_K, const double *A_ptr, const double *B_ptr, zdouble *C_ptr, size_t ldc, int beta_mode, const zdouble *beta_ptr)
 {
     size_t ldc_bytes = ldc * sizeof(zdouble);
 
