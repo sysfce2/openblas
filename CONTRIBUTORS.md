@@ -283,4 +283,5 @@ hheei <hheei@users.noreply.github.com>
 * Aadityansha Verma <https://github.com/aadityansha06>
   * [2026-07-14] Add independent transpose support for C in GEADD (sgeadd/dgeadd/cgeadd/zgeadd).
 
-
+* Hugo Meiland <hugo@meiland.nl>
+  * [2026-08-09] Add Cortex-A72 DGEMM 6x8 microkernel and blocking
