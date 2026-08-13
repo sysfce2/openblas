@@ -519,22 +519,22 @@ zdouble beta={beta_r,beta_i};
     if (!trans_a && !trans_b) {
 	bool conja = (*transa == 'R' || *transa == 'r');
 	bool conjb = (*transb == 'R' || *transb == 'r');
-        zgemm_sme_NN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        zgemm_sme_NN(m, n, k, alpha, (const zdouble*)a, lda, (const zdouble*)b, ldb, beta, (zdouble*)c, ldc, conja, conjb);
     }
     else if (trans_a && !trans_b) {
 	bool conja = (*transa == 'C' || *transa == 'c');
 	bool conjb = (*transb == 'R' || *transb == 'r');
-        zgemm_sme_TN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        zgemm_sme_TN(m, n, k, alpha, (const zdouble*)a, lda, (const zdouble*)b, ldb, beta, (zdouble*)c, ldc, conja, conjb);
     }
     else if (!trans_a && trans_b) {
 	bool conja = (*transa == 'R' || *transa == 'r');
 	bool conjb = (*transb == 'C' || *transb == 'c');
-        zgemm_sme_NT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        zgemm_sme_NT(m, n, k, alpha, (const zdouble*)a, lda, (const zdouble*)b, ldb, beta, (zdouble*)c, ldc, conja, conjb);
     }
     else {
 	bool conja = (*transa == 'C' || *transa == 'c');
 	bool conjb = (*transb == 'C' || *transb == 'c');
-        zgemm_sme_TT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        zgemm_sme_TT(m, n, k, alpha, (const zdouble*)a, lda, (const zdouble*)b, ldb, beta, (zdouble*)c, ldc, conja, conjb);
     }
 }
 

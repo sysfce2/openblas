@@ -524,21 +524,21 @@ cfloat beta={beta_r,beta_i};
     if (!trans_a && !trans_b) {
     bool conja=(*transa == 'R' || *transa == 'r');
     bool conjb=(*transb == 'R' || *transb == 'r');
-        cgemm_sme_NN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        cgemm_sme_NN(m, n, k, alpha, (const cfloat*) a, lda, (const cfloat*) b, ldb, beta, (cfloat*)c, ldc, conja, conjb);
     }
     else if (trans_a && !trans_b) {
     bool conja=(*transa == 'C' || *transa == 'c');
     bool conjb=(*transb == 'R' || *transb == 'r');
-        cgemm_sme_TN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        cgemm_sme_TN(m, n, k, alpha, (const cfloat*) a, lda, (const cfloat*) b, ldb, beta, (cfloat*)c, ldc, conja, conjb);
     }
     else if (!trans_a && trans_b) {
     bool conja=(*transa == 'R' || *transa == 'r');
     bool conjb=(*transb == 'C' || *transb == 'c');
-        cgemm_sme_NT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        cgemm_sme_NT(m, n, k, alpha, (const cfloat*) a, lda, (const cfloat*) b, ldb, beta, (cfloat*)c, ldc, conja, conjb);
     }
     else {
     bool conja=(*transa == 'C' || *transa == 'c');
     bool conjb=(*transb == 'C' || *transb == 'c');
-        cgemm_sme_TT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
+        cgemm_sme_TT(m, n, k, alpha, (const cfloat*) a, lda, (const cfloat*) b, ldb, beta, (cfloat*)c, ldc, conja, conjb);
     }
 }
