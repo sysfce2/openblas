@@ -45,12 +45,6 @@
 #include "functable.h"
 #endif
 
-#ifdef ARCH_ARM64
-void sme_SGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const float *alpha, const float *a, const BLASLONG *lda, const float *b, const BLASLONG *ldb, const float *beta, float *c, const BLASLONG *ldc);
-void sme_DGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const double *alpha, const double *a, const BLASLONG *lda, const double *b, const BLASLONG *ldb, const double *beta, double *c, const BLASLONG *ldc);
-void sme_CGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const float _Complex alpha, const float *a, const BLASLONG *lda, const float *b, const BLASLONG *ldb, const float _Complex beta, float *c, const BLASLONG *ldc);
-void sme_ZGEMM_KERNEL(const char *ta, const char *tb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const double _Complex alpha, const double *a, const BLASLONG *lda, const double *b, const BLASLONG *ldb, const double _Complex beta, double *c, const BLASLONG *ldc);
-#endif
 #ifndef COMPLEX
 #define SMP_THRESHOLD_MIN 65536.0
 #ifdef XDOUBLE
@@ -322,7 +316,7 @@ void NAME(char *TRANSA, char *TRANSB,
 
   args.alpha = (void *)alpha;
   args.beta  = (void *)beta;
-
+  
   transA = *TRANSA;
   transB = *TRANSB;
 
@@ -572,8 +566,7 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
         SGEMM_DIRECT(m, n, k, a, lda, b, ldb, c, ldc);
         return;
   }
-else
- if (order == CblasRowMajor && k==lda && n==ldb && n==ldc && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
+else if (order == CblasRowMajor && k==lda && n==ldb && n==ldc && TransA == CblasNoTrans && TransB == CblasNoTrans && SGEMM_DIRECT_PERFORMANT(m,n,k)) {
         SGEMM_DIRECT_ALPHA_BETA(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
         return;
   }
@@ -595,52 +588,52 @@ if (strcmp(gotoblas_corename(), "armv9sme") == 0
 #endif //defined dynarch
 {
 char* TA,*TB;
-      if (transa & 1)
+      if (transa & 1) 
         TA = "T";
-	else
+	else 
 	TA= "N";
-      if (transb & 1)
+      if (transb & 1) 
         TB = "T";
-	else
+	else 
 	TB= "N";
 #ifndef COMPLEX
-      if (transa == 3)
+      if (transa == 3) 
 	TA= "T";
-      if (transb == 3)
+      if (transb == 3) 
 	TB= "T";
 FLOAT* al=(FLOAT*)args.alpha;
 FLOAT* be=(FLOAT*)args.beta;
 #ifndef DOUBLE
-        sme_SGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, al, args.a, &args.lda, args.b, &args.ldb, be, args.c, &args.ldc);
+        SME_SGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al, args.a, args.lda, args.b, args.ldb, be, args.c, args.ldc);
 #else
-        sme_DGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, al, args.a, &args.lda, args.b, &args.ldb, be, args.c, &args.ldc);
+        SME_DGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al, args.a, args.lda, args.b, args.ldb, be, args.c, args.ldc);
 #endif
 #else
-      if (transa == 2)
+      if (transa == 2) 
 	TA= "R";
-      if (transb == 2)
+      if (transb == 2) 
 	TB= "R";
-      if (transa == 3)
+      if (transa == 3) 
 	TA= "C";
-      if (transb == 3)
+      if (transb == 3) 
 	TB= "C";
 FLOAT* al=(FLOAT*)args.alpha;
 FLOAT* be=(FLOAT*)args.beta;
 #ifndef DOUBLE
 float _Complex c_al={al[0],al[1]};
 float _Complex c_be={be[0],be[1]};
-        sme_CGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, c_al, args.a, &args.lda, args.b, &args.ldb, c_be, args.c, &args.ldc);
+        SME_CGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al[0],al[1], args.a, args.lda, args.b, args.ldb, be[0],be[1], args.c, args.ldc);
 #else
 double _Complex c_al={al[0],al[1]};
 double _Complex c_be={be[0],be[1]};
-        sme_ZGEMM_KERNEL(TA,TB, &args.m, &args.n, &args.k, c_al, args.a, &args.lda, args.b, &args.ldb, c_be, args.c, &args.ldc);
+        SME_ZGEMM_KERNEL(TA,TB, args.m, args.n, args.k, al[0],al[1], args.a, args.lda, args.b, args.ldb, be[0],be[1], args.c, args.ldc);
 #endif
 #endif
 	return;
 }
 #endif //defined arm64
 
-#endif //defined b/hfloat16
+#endif //defined b/hfloat16 
 
 #if defined(__linux__) && defined(__x86_64__) && defined(BFLOAT16)
 #if defined(DYNAMIC_ARCH)
@@ -742,6 +735,7 @@ double _Complex c_be={be[0],be[1]};
 #if USE_SMALL_MATRIX_OPT
 #if !defined(COMPLEX)
   if(GEMM_SMALL_MATRIX_PERMIT(transa, transb, args.m, args.n, args.k, *(FLOAT *)(args.alpha), *(FLOAT *)(args.beta))){
+
 	  if(*(FLOAT *)(args.beta) == 0.0){
 		(GEMM_SMALL_KERNEL_B0((transb << 2) | transa))(args.m, args.n, args.k, args.a, args.lda, *(FLOAT *)(args.alpha), args.b, args.ldb, args.c, args.ldc);
 	  }else{
@@ -762,12 +756,6 @@ double _Complex c_be={be[0],be[1]};
 #endif
 
   buffer = (XFLOAT *)blas_memory_alloc(0);
-  if (!buffer) {
-    info = -999;
-    BLASFUNC(xerbla)(ERROR_NAME, &info, sizeof(ERROR_NAME));
-    return;
-  }
-
 //For LOONGARCH64, applying an offset to the buffer is essential
 //for minimizing cache conflicts and optimizing performance.
 #if defined(ARCH_LOONGARCH64) && !defined(NO_AFFINITY)
