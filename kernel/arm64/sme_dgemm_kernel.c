@@ -28,14 +28,6 @@ static inline void dgemm_sme_compute_16x16_tile(int current_K, const double *A_p
 {
     ptrdiff_t ldc_bytes = ldc * sizeof(double);
 
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
-                         "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
-                         "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
-                         "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
-
-
     asm volatile(
     "smstart\n\t"
     // Enable all 64-bit (double precision) lanes in predicate register p0
@@ -219,17 +211,19 @@ static inline void dgemm_sme_compute_16x16_tile(int current_K, const double *A_p
     "cmp w15, #8\n\t"
     "b.ne 201b\n\t"
     "smstop\n\t"
-    : [a] "+r"(A_ptr), [b] "+r"(B_ptr)
+    "msr fpsr, xzr\n\t"
+    : [a] "+&r"(A_ptr), [b] "+&r"(B_ptr)
     : [k] "r"(current_K), [c] "r"(C_ptr), [ldc_bytes] "r"(ldc_bytes), [beta_mode] "r"(beta_mode), [beta_ptr] "r"(beta_ptr)
-    : "p0","x10", "x11", "w12", "x13", "x14", "w15", "p0", "memory", "cc", "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15", "z31", "za");
-
-
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
-                         "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
-                         "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
-                         "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
+    : "x10", "x11", "x12", "x13", "x14", "w15", "memory", "cc",
+       "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9",
+       "v10", "v11", "v12", "v13", "v14", "v15", "v16", "v17", "v18",
+       "v19", "v20", "v21", "v22", "v23", "v24", "v25", "v26", "v27",
+       "v28", "v29", "v30", "v31",
+       "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8", "z9",
+       "z10", "z11", "z12", "z13", "z14", "z15", "z16", "z17", "z18",
+       "z19", "z20", "z21", "z22", "z23", "z24", "z25", "z26", "z27",
+       "z28", "z29", "z30", "z31", "za", "p0", "p1", "p2", "p3", "p4",
+       "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15");
 
 
 }
@@ -237,7 +231,7 @@ static inline void dgemm_sme_compute_16x16_tile(int current_K, const double *A_p
 // ========================================================================
 // VERSION 0: C = alpha * A * B + beta * C (NN)
 // ========================================================================
-void dgemm_sme_NN(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
+static void dgemm_sme_NN(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
 {
 #if PROFILING
     CALI_CXX_MARK_FUNCTION;
@@ -520,7 +514,7 @@ void dgemm_sme_NN(int M, int N, int K, double alpha, const double *A, int lda, c
 // ========================================================================
 // VERSION 1: C = alpha * A^T * B + beta * C (TN)
 // ========================================================================
-void dgemm_sme_TN(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
+static void dgemm_sme_TN(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
 {
     if (alpha == 0.0 || K == 0) {
         if (beta != 1.0) {
@@ -751,7 +745,7 @@ void dgemm_sme_TN(int M, int N, int K, double alpha, const double *A, int lda, c
 // ========================================================================
 // VERSION 2: C = alpha * A * B^T + beta * C (NT)
 // ========================================================================
-void dgemm_sme_NT(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
+static void dgemm_sme_NT(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
 {
     if (alpha == 0.0 || K == 0) {
         if (beta != 1.0) {
@@ -972,7 +966,7 @@ void dgemm_sme_NT(int M, int N, int K, double alpha, const double *A, int lda, c
 // ========================================================================
 // VERSION 3: C = alpha * A^T * B^T + beta * C (TT)
 // ========================================================================
-void dgemm_sme_TT(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
+static void dgemm_sme_TT(int M, int N, int K, double alpha, const double *A, int lda, const double *B, int ldb, double beta, double *C, int ldc)
 {
     if (alpha == 0.0 || K == 0) {
         if (beta != 1.0) {
@@ -1187,20 +1181,20 @@ void dgemm_sme_TT(int M, int N, int K, double alpha, const double *A, int lda, c
 // ========================================================================
 // WRAPPER: BLAS ABI Compatible dgemm
 // ========================================================================
-void sme_DGEMM_KERNEL(const char *transa, const char *transb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const double *alpha, const double *a, const BLASLONG *lda, const double *b, const BLASLONG *ldb, const double *beta, double *c, const BLASLONG *ldc)
+void CNAME(const char *transa, const char *transb, const BLASLONG m, const BLASLONG n, const BLASLONG k, const double *alpha, const double *a, const BLASLONG lda, const double *b, const BLASLONG ldb, const double *beta, double *c, const BLASLONG ldc)
 {
     bool trans_a = (*transa == 'T' || *transa == 't' || *transa == 'C' || *transa == 'c');
     bool trans_b = (*transb == 'T' || *transb == 't' || *transb == 'C' || *transb == 'c');
     if (!trans_a && !trans_b) {
-        dgemm_sme_NN(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        dgemm_sme_NN(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else if (trans_a && !trans_b) {
-        dgemm_sme_TN(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        dgemm_sme_TN(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else if (!trans_a && trans_b) {
-        dgemm_sme_NT(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        dgemm_sme_NT(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else {
-        dgemm_sme_TT(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        dgemm_sme_TT(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
 }

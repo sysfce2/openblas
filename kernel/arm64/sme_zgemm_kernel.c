@@ -9,7 +9,7 @@
 
 typedef double _Complex zdouble;
 
-zdouble CDMUL(zdouble a, zdouble b,bool conja, bool conjb) {
+static zdouble CDMUL(zdouble a, zdouble b,bool conja, bool conjb) {
 double ra=creal(a);
 double rb=creal(b);
 double ia=conja ? -cimag(a) : cimag(a);
@@ -23,10 +23,8 @@ return res;
 }
 
 
-zdouble cdzero={0.,0.};
-zdouble cdone={1.,0.};
-
-
+static zdouble cdzero={0.,0.};
+static zdouble cdone={1.,0.};
 
 
 #define MC 128
@@ -36,15 +34,6 @@ zdouble cdone={1.,0.};
 static inline void zgemm_sme_compute_8x8_tile(int current_K, const double *A_ptr, const double *B_ptr, zdouble *C_ptr, size_t ldc, int beta_mode, const zdouble *beta_ptr)
 {
     size_t ldc_bytes = ldc * sizeof(zdouble);
-
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
-                         "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
-                         "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
-                         "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
-
-
 
     asm volatile("smstart\n\t"
 		 "ptrue p0.d\n\t"
@@ -142,24 +131,25 @@ static inline void zgemm_sme_compute_8x8_tile(int current_K, const double *A_ptr
                  "add w12, w12, #1\n\t"
                  "cmp w12, #8\n\t"
                  "b.ne 200b\n\t"
-		"smstop\n\t"
-    : [a] "+r"(A_ptr), [b] "+r"(B_ptr)
+ 		 "smstop\n\t"
+                 "msr fpsr, xzr\n\t"
+    : [a] "+&r"(A_ptr), [b] "+&r"(B_ptr)
     : [k] "r"(current_K), [c] "r"(C_ptr), [ldc_bytes] "r"(ldc_bytes), [beta_mode] "r"(beta_mode), [beta_ptr] "r"(beta_ptr)
-    // Updated Clobber list to cover all the new registers utilized
-    : "p0", "x10", "w12", "x13", "x14", "x15", "p0", "memory", "cc", "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7", "z8", "z9", "z30", "z31", "za");
-
-
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
-                         "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
-                         "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
-                         "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
-
+    : "x10", "x12", "x13", "x14", "x15", "memory", "cc",
+      "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+      "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15",
+      "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23",
+      "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
+      "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
+      "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
+      "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
+      "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31", "za",
+      "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8",
+      "p9", "p10", "p11", "p12", "p13", "p14", "p15");
 
 }
 
-void zgemm_sme_NN(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
+static void zgemm_sme_NN(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
 {
 
     if (alpha == cdzero || K == 0) {
@@ -245,7 +235,7 @@ void zgemm_sme_NN(int M, int N, int K, const zdouble alpha, const zdouble *A, in
     }
 }
 
-void zgemm_sme_TN(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
+static void zgemm_sme_TN(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
 {
     if (alpha == cdzero || K == 0) {
         if (beta != cdone) {
@@ -330,7 +320,7 @@ void zgemm_sme_TN(int M, int N, int K, const zdouble alpha, const zdouble *A, in
     }
 }
 
-void zgemm_sme_NT(blasint M, blasint N, blasint K, const zdouble alpha, const zdouble *A, blasint lda, const zdouble *b, blasint ldb, const zdouble beta, zdouble *C, blasint ldc, bool conja, bool conjb)
+static void zgemm_sme_NT(blasint M, blasint N, blasint K, const zdouble alpha, const zdouble *A, blasint lda, const zdouble *b, blasint ldb, const zdouble beta, zdouble *C, blasint ldc, bool conja, bool conjb)
 {
 #if 0
     if (alpha == cdzero || K == 0) {
@@ -434,7 +424,7 @@ void zgemm_sme_NT(blasint M, blasint N, blasint K, const zdouble alpha, const zd
     }
 }
 
-void zgemm_sme_TT(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
+static void zgemm_sme_TT(int M, int N, int K, const zdouble alpha, const zdouble *A, int lda, const zdouble *b, int ldb, const zdouble beta, zdouble *C, int ldc, bool conja, bool conjb)
 {
     if (alpha == cdzero || K == 0) {
         if (beta != cdone) {
@@ -519,29 +509,32 @@ void zgemm_sme_TT(int M, int N, int K, const zdouble alpha, const zdouble *A, in
     }
 }
 
-void sme_ZGEMM_KERNEL(const char *transa, const char *transb, const blasint *m, const blasint *n, const blasint *k, const zdouble alpha, const zdouble *a, const blasint *lda, const zdouble *b, const blasint *ldb, const zdouble beta, zdouble *c, const blasint *ldc)
+void CNAME(const char *transa, const char *transb, const BLASLONG m, const BLASLONG n, const BLASLONG k, const double alpha_r, const double alpha_i, const double *a, const BLASLONG lda, const double *b, const BLASLONG ldb, const double beta_r, const double beta_i, double *c, const BLASLONG ldc)
 {
+zdouble alpha={alpha_r,alpha_i};
+zdouble beta={beta_r,beta_i};
+
     bool trans_a = (*transa == 'T' || *transa == 't' || *transa == 'C' || *transa == 'c');
     bool trans_b = (*transb == 'T' || *transb == 't' || *transb == 'C' || *transb == 'c');
     if (!trans_a && !trans_b) {
 	bool conja = (*transa == 'R' || *transa == 'r');
 	bool conjb = (*transb == 'R' || *transb == 'r');
-        zgemm_sme_NN(*m, *n, *k, alpha, a, *lda, b, *ldb, beta, c, *ldc, conja, conjb);
+        zgemm_sme_NN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
     }
     else if (trans_a && !trans_b) {
 	bool conja = (*transa == 'C' || *transa == 'c');
 	bool conjb = (*transb == 'R' || *transb == 'r');
-        zgemm_sme_TN(*m, *n, *k, alpha, a, *lda, b, *ldb, beta, c, *ldc, conja, conjb);
+        zgemm_sme_TN(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
     }
     else if (!trans_a && trans_b) {
 	bool conja = (*transa == 'R' || *transa == 'r');
 	bool conjb = (*transb == 'C' || *transb == 'c');
-        zgemm_sme_NT(*m, *n, *k, alpha, a, *lda, b, *ldb, beta, c, *ldc, conja, conjb);
+        zgemm_sme_NT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
     }
     else {
 	bool conja = (*transa == 'C' || *transa == 'c');
 	bool conjb = (*transb == 'C' || *transb == 'c');
-        zgemm_sme_TT(*m, *n, *k, alpha, a, *lda, b, *ldb, beta, c, *ldc, conja, conjb);
+        zgemm_sme_TT(m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, conja, conjb);
     }
 }
 

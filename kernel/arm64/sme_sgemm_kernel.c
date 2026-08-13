@@ -8,21 +8,7 @@
 #ifndef stdmin
 #define stdmin(a,b)   (a>b? b:a)
 #endif
-    void SMEStart()
-    {
-        asm volatile("smstart\n\t" ::: "memory");
-    }
-    void SMEStop()
-    {
-        asm volatile("smstop\n\t" ::: "memory");
-    }
-//    SMEGuard(const SMEGuard &) = delete;
-//    SMEGuard &operator=(const SMEGuard &) = delete;
-/*
-const int MC = 512;
-const int KC = 1024;
-const int NC = 2048;
-*/
+
 #define MC 512
 #define KC 1024
 #define NC 2048
@@ -30,15 +16,7 @@ const int NC = 2048;
 static inline void sgemm_sme_compute_32x32_tile(blasint current_K, const float *A_ptr, const float *B_ptr, float *C_ptr, size_t ldc, blasint beta_mode, const float *beta_ptr)
 {
     size_t ldc_bytes = ldc * sizeof(float);
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
-                         "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
-                         "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
-                         "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
 
-
-    //SMEGuard __stream_guard;
     asm volatile("smstart\n\t"
 		 "ptrue p0.s\n\t"
                  "cmp %w[beta_mode], #0\n\t"
@@ -144,21 +122,25 @@ static inline void sgemm_sme_compute_32x32_tile(blasint current_K, const float *
                  "cmp w15, #16\n\t"
                  "b.ne 201b\n\t"
 		 "smstop\n\t"
-    : [a] "+r"(A_ptr), [b] "+r"(B_ptr)
+		"msr fpsr, xzr\n\t"
+    : [a] "+&r"(A_ptr), [b] "+&r"(B_ptr)
     : [k] "r"(current_K), [c] "r"(C_ptr), [ldc_bytes] "r"(ldc_bytes), [beta_mode] "r"(beta_mode), [beta_ptr] "r"(beta_ptr)
-    : "p0", "x10", "w12", "x13", "x14", "w15", "p0", "memory", "cc", "z0", "z1", "z2", "z3", "z31", "za");
-
-        asm volatile("" : : :"p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
-                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15", "d8", "d9", "d10", "d11", "d12", "d13", "d14", "d15",
+    : "x10", "x12", "x13", "x14", "x15", "memory", "cc", 
+                         "v0", "v1", "v2", "v3", "v4", "v5", "v6", "v7",
+                         "v8", "v9", "v10", "v11", "v12", "v13", "v14", "v15",
+                         "v16", "v17", "v18", "v19", "v20", "v21", "v22", "v23",
+                         "v24", "v25", "v26", "v27", "v28", "v29", "v30", "v31",
                          "z0", "z1", "z2", "z3", "z4", "z5", "z6", "z7",
                          "z8", "z9", "z10", "z11", "z12", "z13", "z14", "z15",
                          "z16", "z17", "z18", "z19", "z20", "z21", "z22", "z23",
-                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31");
+                         "z24", "z25", "z26", "z27", "z28", "z29", "z30", "z31",
+      			 "p0", "p1", "p2", "p3", "p4", "p5", "p6", "p7",
+                         "p8", "p9", "p10", "p11", "p12", "p13", "p14", "p15","za");
 
 
 }
 
-void sgemm_sme_NN(blasint M, blasint N, blasint K, float alpha, const float *A, blasint lda, const float *B, blasint ldb, float beta, float *C, blasint ldc)
+static void sgemm_sme_NN(blasint M, blasint N, blasint K, float alpha, const float *A, blasint lda, const float *B, blasint ldb, float beta, float *C, blasint ldc)
 {
     if (alpha == 0.0f || K == 0) {
         if (beta != 1.0f) {
@@ -277,7 +259,7 @@ void sgemm_sme_NN(blasint M, blasint N, blasint K, float alpha, const float *A, 
     }
 }
 
-void sgemm_sme_TN(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
+static void sgemm_sme_TN(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
 {
     if (alpha == 0.0f || K == 0) {
         if (beta != 1.0f) {
@@ -398,7 +380,7 @@ void sgemm_sme_TN(int M, int N, int K, float alpha, const float *A, int lda, con
     }
 }
 
-void sgemm_sme_NT(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
+static void sgemm_sme_NT(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
 {
     if (alpha == 0.0f || K == 0) {
         if (beta != 1.0f) {
@@ -514,7 +496,7 @@ void sgemm_sme_NT(int M, int N, int K, float alpha, const float *A, int lda, con
     }
 }
 
-void sgemm_sme_TT(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
+static void sgemm_sme_TT(int M, int N, int K, float alpha, const float *A, int lda, const float *B, int ldb, float beta, float *C, int ldc)
 {
     if (alpha == 0.0f || K == 0) {
         if (beta != 1.0f) {
@@ -632,20 +614,20 @@ void sgemm_sme_TT(int M, int N, int K, float alpha, const float *A, int lda, con
     }
 }
 
-/*extern "C"*/ void sme_SGEMM_KERNEL(const char *transa, const char *transb, const BLASLONG *m, const BLASLONG *n, const BLASLONG *k, const float *alpha, const float *a, const BLASLONG *lda, const float *b, const BLASLONG *ldb, const float *beta, float *c, const BLASLONG *ldc)
+void CNAME(char *transa,  char *transb, BLASLONG m,  BLASLONG n,  BLASLONG k,  float *alpha,  float *a,  BLASLONG lda,  float *b,  BLASLONG ldb,  float *beta, float *c,  BLASLONG ldc)
 {
     bool trans_a = (*transa == 'T' || *transa == 't' || *transa == 'C' || *transa == 'c');
     bool trans_b = (*transb == 'T' || *transb == 't' || *transb == 'C' || *transb == 'c');
     if (!trans_a && !trans_b) {
-        sgemm_sme_NN(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        sgemm_sme_NN(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else if (trans_a && !trans_b) {
-        sgemm_sme_TN(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        sgemm_sme_TN(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else if (!trans_a && trans_b) {
-        sgemm_sme_NT(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        sgemm_sme_NT(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
     else {
-        sgemm_sme_TT(*m, *n, *k, *alpha, a, *lda, b, *ldb, *beta, c, *ldc);
+        sgemm_sme_TT(m, n, k, *alpha, a, lda, b, ldb, *beta, c, ldc);
     }
 }
