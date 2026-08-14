@@ -29,7 +29,7 @@ static cfloat czero={0.,0.};
 static cfloat cone={1.,0.};
 
 #define MC 256
-#define KC 512
+#define KC 2048
 #define NC 1024
 
 static inline void cgemm_sme_compute_16x16_tile(blasint current_K, const float *A_ptr, const float *B_ptr, cfloat *C_ptr, size_t ldc, int beta_mode, const cfloat *beta_ptr)
