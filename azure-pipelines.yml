@@ -236,6 +236,7 @@ jobs:
       ctest
       
 - job: OSX_dynarch_cmake
+  timeoutInMinutes: 100
   pool:
      vmImage: 'macOS-15'
   variables:
