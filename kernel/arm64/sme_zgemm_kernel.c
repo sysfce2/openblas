@@ -28,7 +28,7 @@ static zdouble cdone={1.,0.};
 
 
 #define MC 128
-#define KC 256
+#define KC 1024
 #define NC 512
 
 static inline void zgemm_sme_compute_8x8_tile(int current_K, const double *A_ptr, const double *B_ptr, zdouble *C_ptr, size_t ldc, int beta_mode, const zdouble *beta_ptr)
