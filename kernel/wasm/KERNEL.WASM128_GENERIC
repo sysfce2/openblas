@@ -112,13 +112,13 @@ DGEMMOTCOPY    = ../generic/gemm_tcopy_4.c
 DGEMMONCOPYOBJ = dgemm_oncopy$(TSUFFIX).$(SUFFIX)
 DGEMMOTCOPYOBJ = dgemm_otcopy$(TSUFFIX).$(SUFFIX)
 
-CGEMMKERNEL    = ../generic/zgemmkernel_2x2.c
+CGEMMKERNEL    = zgemmkernel_2x2_wasm128.c
 CGEMMONCOPY    = ../generic/zgemm_ncopy_2.c
 CGEMMOTCOPY    = ../generic/zgemm_tcopy_2.c
 CGEMMONCOPYOBJ =  cgemm_oncopy$(TSUFFIX).$(SUFFIX)
 CGEMMOTCOPYOBJ =  cgemm_otcopy$(TSUFFIX).$(SUFFIX)
 
-ZGEMMKERNEL    = ../generic/zgemmkernel_2x2.c
+ZGEMMKERNEL    = zgemmkernel_2x2_wasm128.c
 ZGEMMONCOPY    = ../generic/zgemm_ncopy_2.c
 ZGEMMOTCOPY    = ../generic/zgemm_tcopy_2.c
 ZGEMMONCOPYOBJ =  zgemm_oncopy$(TSUFFIX).$(SUFFIX)
