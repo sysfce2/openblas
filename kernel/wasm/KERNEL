@@ -89,13 +89,21 @@ DSWAPKERNEL  = ../riscv64/swap.c
 CSWAPKERNEL  = ../riscv64/zswap.c
 ZSWAPKERNEL  = ../riscv64/zswap.c
 
+ifndef SGEMVNKERNEL
 SGEMVNKERNEL = ../riscv64/gemv_n.c
+endif
+ifndef DGEMVNKERNEL
 DGEMVNKERNEL = ../riscv64/gemv_n.c
+endif
 CGEMVNKERNEL = ../riscv64/zgemv_n.c
 ZGEMVNKERNEL = ../riscv64/zgemv_n.c
 
+ifndef SGEMVTKERNEL
 SGEMVTKERNEL = ../riscv64/gemv_t.c
+endif
+ifndef DGEMVTKERNEL
 DGEMVTKERNEL = ../riscv64/gemv_t.c
+endif
 CGEMVTKERNEL = ../riscv64/zgemv_t.c
 ZGEMVTKERNEL = ../riscv64/zgemv_t.c
 
