@@ -341,11 +341,13 @@ if (USE_OPENMP)
   endif()
 endif()
 
-# Second part of "Argument list too long" fix when static libraries are
-# built. See above for details.
-if(APPLE AND BUILD_STATIC_LIBS)
+# Fix "Argument list too long" for macOS - mostly seen with older OS versions on POWERPC or Intel CPUs 
+if(APPLE)
+  # Use response files
+  set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
   # Always build static library first
-  set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
+  if(BUILD_STATIC_LIBS)
+    set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
   # Handle differences in how many response files are generated and/or where
   # they are stored for Ninja / Unix Makefiles.
   if("${CMAKE_GENERATOR}" MATCHES "Ninja")
@@ -353,10 +355,12 @@ if(APPLE AND BUILD_STATIC_LIBS)
       "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/openblas_static.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
       "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   else()
-    set(CREATE_STATIC_LIBRARY_COMMAND
-      "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/${OpenBLAS_LIBNAME}_static.dir/objects*.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
-      "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
+    add_library(${OpenBLAS_LIBNAME}_static STATIC ${TARGET_OBJS} ${OpenBLAS_DEF_FILE})
+    set(STATIC_PATH "lib${OpenBLAS_LIBNAME}.a")
   endif()
+  set(CREATE_STATIC_LIBRARY_COMMAND
+    "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/${OpenBLAS_LIBNAME}_static.dir/objects*.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
+    "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   if(BUILD_SHARED_LIBS)
     add_dependencies(${OpenBLAS_LIBNAME}_shared ${OpenBLAS_LIBNAME}_static)
     set(SHARED_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libopenblas.${OpenBLAS_MAJOR_VERSION}.${OpenBLAS_MINOR_VERSION}.dylib")
