@@ -348,6 +348,7 @@ if(APPLE)
   # Always build static library first
   if(BUILD_STATIC_LIBS)
     set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
+  endif ()
   # Handle differences in how many response files are generated and/or where
   # they are stored for Ninja / Unix Makefiles.
   if("${CMAKE_GENERATOR}" MATCHES "Ninja")
