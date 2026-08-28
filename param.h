@@ -3520,11 +3520,12 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DGEMM_DEFAULT_UNROLL_M  6
 #define DGEMM_DEFAULT_UNROLL_N  8
-/* SYRK/SYR2K pack B in GEMM_UNROLL_MN-wide strips, then call GEMM with the
- * full panel N. That B buffer must match NR packing, so MN must be a
- * multiple of UNROLL_N (here 8). MR=6 ICOPY handles width-8 as 6+2.
- * (MN=6 looked attractive for MR but breaks NR=8 B layout; see #5997.) */
-#define DGEMM_DEFAULT_UNROLL_MN 8
+/* SYRK/SYR2K diagonal kernels step packed A/B by GEMM_UNROLL_MN and assume
+ * that lands on both MR and NR panel boundaries (pointer a+loop*k). So MN
+ * must be a common multiple of UNROLL_M and UNROLL_N: LCM(6,8)=24.
+ * MN=6 matched MR but broke NR=8 B packs; MN=8 matched NR but stepped into
+ * the middle of MR=6 A panels (first 6 rows OK, rest wrong). See #5997. */
+#define DGEMM_DEFAULT_UNROLL_MN 24
 
 #define CGEMM_DEFAULT_UNROLL_M  8
 #define CGEMM_DEFAULT_UNROLL_N  4
