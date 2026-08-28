@@ -3520,6 +3520,9 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DGEMM_DEFAULT_UNROLL_M  6
 #define DGEMM_DEFAULT_UNROLL_N  8
+/* Keep UNROLL_MN at MR=6 so SYRK/SYR2K diagonal stepping matches the
+ * 6-wide packers (default MAX(M,N)=8 would mismatch; see #5997). */
+#define DGEMM_DEFAULT_UNROLL_MN 6
 
 #define CGEMM_DEFAULT_UNROLL_M  8
 #define CGEMM_DEFAULT_UNROLL_N  4
