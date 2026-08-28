@@ -3520,11 +3520,11 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DGEMM_DEFAULT_UNROLL_M  6
 #define DGEMM_DEFAULT_UNROLL_N  8
-/* Keep UNROLL_MN at MR=6 so SYRK/SYR2K diagonal blocks match the 6-wide
- * packers (default MAX(M,N)=8 forces 6+2 A edges on every diagonal tile).
- * Thread splits use width%~(MN) via (mask+1) with mask=MN-1, so MN need not
- * be a power of two; syr2k_kernel must not use ~(MN-1) bit clearing. */
-#define DGEMM_DEFAULT_UNROLL_MN 6
+/* SYRK/SYR2K pack B in GEMM_UNROLL_MN-wide strips, then call GEMM with the
+ * full panel N. That B buffer must match NR packing, so MN must be a
+ * multiple of UNROLL_N (here 8). MR=6 ICOPY handles width-8 as 6+2.
+ * (MN=6 looked attractive for MR but breaks NR=8 B layout; see #5997.) */
+#define DGEMM_DEFAULT_UNROLL_MN 8
 
 #define CGEMM_DEFAULT_UNROLL_M  8
 #define CGEMM_DEFAULT_UNROLL_N  4
