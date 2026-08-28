@@ -3520,8 +3520,10 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define DGEMM_DEFAULT_UNROLL_M  6
 #define DGEMM_DEFAULT_UNROLL_N  8
-/* Keep UNROLL_MN at MR=6 so SYRK/SYR2K diagonal stepping matches the
- * 6-wide packers (default MAX(M,N)=8 would mismatch; see #5997). */
+/* Keep UNROLL_MN at MR=6 so SYRK/SYR2K diagonal blocks match the 6-wide
+ * packers (default MAX(M,N)=8 forces 6+2 A edges on every diagonal tile).
+ * Thread splits use width%~(MN) via (mask+1) with mask=MN-1, so MN need not
+ * be a power of two; syr2k_kernel must not use ~(MN-1) bit clearing. */
 #define DGEMM_DEFAULT_UNROLL_MN 6
 
 #define CGEMM_DEFAULT_UNROLL_M  8
