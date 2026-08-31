@@ -356,8 +356,7 @@ if(APPLE)
       "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/openblas_static.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
       "sh -c '${CMAKE_AR} -rs ${STATIC_PATH} ${CMAKE_BINARY_DIR}/driver/others/CMakeFiles/driver_others.dir/xerbla.c.o && exit 0' ")
   else()
-    add_library(${OpenBLAS_LIBNAME}_static STATIC ${TARGET_OBJS} ${OpenBLAS_DEF_FILE})
-    set(STATIC_PATH "lib${OpenBLAS_LIBNAME}.a")
+    set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
   endif()
   set(CREATE_STATIC_LIBRARY_COMMAND
     "sh -c 'cat ${CMAKE_BINARY_DIR}/CMakeFiles/${OpenBLAS_LIBNAME}_static.dir/objects*.rsp | xargs -n 1024 ${CMAKE_AR} -ru ${STATIC_PATH} && exit 0' "
