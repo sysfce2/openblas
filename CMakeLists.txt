@@ -89,6 +89,9 @@ if (NOT BUILD_STATIC_LIBS)
 endif ()
 endif()
 
+if (APPLE AND NOT BUILD_STATIC_LIBS)
+       set (BUILD_STATIC_LIBS ON CACHE BOOL "Build static library" FORCE)
+endif()
 
 #######
 if(BUILD_WITHOUT_LAPACK)
@@ -346,9 +349,8 @@ if(APPLE)
   # Use response files
   set(CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1)
   # Always build static library first
-  if(BUILD_STATIC_LIBS)
-    set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
-  endif ()
+  set(STATIC_PATH "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/lib${OpenBLAS_LIBNAME}.a")
+  
   # Handle differences in how many response files are generated and/or where
   # they are stored for Ninja / Unix Makefiles.
   if("${CMAKE_GENERATOR}" MATCHES "Ninja")
@@ -373,6 +375,9 @@ if(APPLE)
   if(NOT NOFORTRAN)
     set(CMAKE_Fortran_CREATE_STATIC_LIBRARY ${CREATE_STATIC_LIBRARY_COMMAND})
     if(BUILD_SHARED_LIBS)
+	  if (CMAKE_Fortran_COMPILER_ID STREQUAL "LLVMFlang")
+      set_target_properties (${OpenBLAS_LIBNAME}_shared PROPERTIES LINKER_LANGUAGE C)
+      endif()
       if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
         set(CMAKE_Fortran_CREATE_SHARED_LIBRARY
           "sh -c 'echo \"\" | ${CMAKE_Fortran_COMPILER} -o dummy.o -c -x f95-cpp-input - '"
