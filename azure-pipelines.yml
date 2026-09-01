@@ -199,9 +199,10 @@ jobs:
      RANLIB: touch
   steps:   
   - script: |
-      brew update
-      brew install llvm flang
-      make TARGET=NEHALEM CC=/usr/local/opt/llvm/bin/clang FC=/usr/local/opt/flang/bin/flang NO_SHARED=1
+      wget https://github.com/macports/macports-base/releases/download/v2.12.6/MacPorts-2.12.6-26-Tahoe.pkg
+      pkg install MacPorts-2.12.6-26-Tahoe.pkg
+      sudo port install llvm-23
+      make TARGET=NEHALEM CC=clang-23 FC=flang-23 NO_SHARED=1
 
 - job: OSX_OpenMP_Clang
   timeoutInMinutes: 100
