@@ -200,7 +200,7 @@ jobs:
   steps:   
   - script: |
       wget https://github.com/macports/macports-base/releases/download/v2.12.6/MacPorts-2.12.6-26-Tahoe.pkg
-      pkg install MacPorts-2.12.6-26-Tahoe.pkg
+      sudo installer -pkg MacPorts-2.12.6-26-Tahoe.pkg -target /
       sudo port install llvm-23
       make TARGET=NEHALEM CC=clang-23 FC=flang-23 NO_SHARED=1
 
