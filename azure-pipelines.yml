@@ -194,8 +194,8 @@ jobs:
   pool:
      vmImage: 'macOS-latest'
   variables:
-     LD_LIBRARY_PATH: /usr/local/opt/llvm/lib
-     LIBRARY_PATH: /usr/local/opt/llvm/lib
+     #LD_LIBRARY_PATH: /usr/local/opt/llvm/lib
+     #LIBRARY_PATH: /usr/local/opt/llvm/lib
      RANLIB: touch
   steps:   
   - script: |
@@ -204,8 +204,8 @@ jobs:
       export PATH=/opt/local/bin:$PATH
       hash -r
       sudo port install llvm-23 clang-23 flang-23
-      port contents flang-23
-      make TARGET=NEHALEM CC=clang FC=flang NO_SHARED=1
+      #port contents flang-23
+      make TARGET=NEHALEM CC=clang-mp-23 FC=flang-mp-23 NO_SHARED=1
 
 - job: OSX_OpenMP_Clang
   timeoutInMinutes: 100
