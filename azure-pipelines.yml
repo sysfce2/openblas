@@ -203,8 +203,8 @@ jobs:
       sudo installer -pkg MacPorts-2.12.6-15-Sequoia.pkg -target /
       export PATH=/opt/local/bin:$PATH
       hash -r
-      sudo port install llvm-23
-      port contents llvm-23
+      sudo port install llvm-23 clang-23 flang-23
+      port contents flang-23
       make TARGET=NEHALEM CC=clang FC=flang NO_SHARED=1
 
 - job: OSX_OpenMP_Clang
